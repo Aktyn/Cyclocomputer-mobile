@@ -6,7 +6,6 @@ import {
   Inter_500Medium,
 } from '@expo-google-fonts/inter'
 import { useDimensions } from '@react-native-community/hooks'
-import { registerRootComponent } from 'expo'
 import * as Font from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
@@ -136,4 +135,4 @@ const styles = StyleSheet.create({
   },
 })
 
-registerRootComponent(App)
+// registerRootComponent(App)
