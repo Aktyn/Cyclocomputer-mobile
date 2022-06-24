@@ -30,6 +30,7 @@ import {
   Title,
 } from 'react-native-paper'
 import { Fonts } from 'react-native-paper/lib/typescript/types'
+import { bluetooth } from './bluetooth'
 import { darkTheme } from './themes/darkTheme'
 
 const fontConfig: {
@@ -60,6 +61,7 @@ export default function App() {
   const dimensions = useDimensions()
 
   const [appIsReady, setAppIsReady] = useState(false)
+  const [isBluetoothScanning, setIsBluetoothScanning] = useState(false)
 
   useEffect(() => {
     async function prepare() {
@@ -102,6 +104,10 @@ export default function App() {
     return null
   }
 
+  // if (isBluetoothScanning) {
+  //   return <Test />
+  // }
+
   return (
     <Provider theme={theme}>
       <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
@@ -116,10 +122,18 @@ export default function App() {
           dark
           icon="camera"
           mode="contained"
-          onPress={() => console.log('Tap!')}
+          onPress={() => {
+            if (isBluetoothScanning) {
+              bluetooth.stopScan()
+            } else {
+              bluetooth.startScan().catch(console.error)
+            }
+            setIsBluetoothScanning((s) => !s)
+          }}
         >
-          Test
+          {isBluetoothScanning ? 'Stop scanning' : 'Scan devices'}
         </Button>
+        {isBluetoothScanning && <Text>Scanning...</Text>}
       </SafeAreaView>
     </Provider>
   )
