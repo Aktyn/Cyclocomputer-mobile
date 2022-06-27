@@ -123,6 +123,7 @@ module.exports = {
     'react/prop-types': [0],
     'react/react-in-jsx-scope': 'off',
     'no-console': 'warn',
+    'react-native/no-inline-styles': 'off',
   },
   overrides: [
     {

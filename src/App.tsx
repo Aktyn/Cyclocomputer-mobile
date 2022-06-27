@@ -5,7 +5,6 @@ import {
   Inter_400Regular,
   Inter_500Medium,
 } from '@expo-google-fonts/inter'
-import { useDimensions } from '@react-native-community/hooks'
 import * as Font from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
@@ -16,22 +15,16 @@ import {
   Platform,
   StatusBar as StatusBarProps,
   PlatformOSType,
+  LogBox,
 } from 'react-native'
-import {
-  Button,
-  Caption,
-  configureFonts,
-  DefaultTheme,
-  Headline,
-  Paragraph,
-  Provider,
-  Subheading,
-  Text,
-  Title,
-} from 'react-native-paper'
+import { configureFonts, DefaultTheme, Provider } from 'react-native-paper'
 import { Fonts } from 'react-native-paper/lib/typescript/types'
-import { bluetooth } from './bluetooth'
+import { BluetoothProvider } from './bluetooth/Bluetooth'
+import { SnackbarProvider } from './snackbar/Snackbar'
 import { darkTheme } from './themes/darkTheme'
+import { ScanningView } from './views/ScanningView'
+
+LogBox.ignoreAllLogs()
 
 const fontConfig: {
   [platform in PlatformOSType | 'default']?: Fonts
@@ -58,10 +51,9 @@ const fontConfig: {
 
 export default function App() {
   const colorScheme = useColorScheme()
-  const dimensions = useDimensions()
+  // const dimensions = useDimensions()
 
   const [appIsReady, setAppIsReady] = useState(false)
-  const [isBluetoothScanning, setIsBluetoothScanning] = useState(false)
 
   useEffect(() => {
     async function prepare() {
@@ -98,43 +90,28 @@ export default function App() {
     }
   }, [appIsReady])
 
-  console.log('color scheme: ', colorScheme, 'dimensions: ', dimensions)
+  // console.log('color scheme: ', colorScheme, 'dimensions: ', dimensions)
 
   if (!appIsReady) {
     return null
   }
 
-  // if (isBluetoothScanning) {
-  //   return <Test />
-  // }
-
   return (
     <Provider theme={theme}>
-      <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
-        <StatusBar style="auto" />
-        <Headline>Headline</Headline>
+      <SnackbarProvider>
+        <BluetoothProvider>
+          <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
+            <StatusBar style="auto" />
+            <ScanningView />
+            {/* <Headline>Headline</Headline>
         <Title>Title</Title>
         <Subheading>Subheading</Subheading>
         <Text>Text</Text>
         <Paragraph>Paragraph</Paragraph>
-        <Caption>Caption</Caption>
-        <Button
-          dark
-          icon="camera"
-          mode="contained"
-          onPress={() => {
-            if (isBluetoothScanning) {
-              bluetooth.stopScan()
-            } else {
-              bluetooth.startScan().catch(console.error)
-            }
-            setIsBluetoothScanning((s) => !s)
-          }}
-        >
-          {isBluetoothScanning ? 'Stop scanning' : 'Scan devices'}
-        </Button>
-        {isBluetoothScanning && <Text>Scanning...</Text>}
-      </SafeAreaView>
+        <Caption>Caption</Caption> */}
+          </SafeAreaView>
+        </BluetoothProvider>
+      </SnackbarProvider>
     </Provider>
   )
 }
@@ -144,9 +121,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: darkTheme.colors.background,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingTop: Platform.OS === 'android' ? StatusBarProps.currentHeight : 0,
   },
 })
-
-// registerRootComponent(App)
