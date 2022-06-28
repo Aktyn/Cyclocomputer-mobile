@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { blueGrey, lightGreen } from 'material-ui-colors'
 import {
   ScrollView,
@@ -7,7 +7,6 @@ import {
   TextStyle,
   View,
 } from 'react-native'
-import { Device, State } from 'react-native-ble-plx'
 import { Button, Title, List } from 'react-native-paper'
 import { useBluetooth } from '../bluetooth/Bluetooth'
 
@@ -26,19 +25,25 @@ const DeviceListIcon = (props: ListIconProps) => (
 
 export const ScanningView = () => {
   const {
-    bluetoothState,
+    bluetoothEnabled,
+    requestBluetoothEnable,
     scanning,
-    toggleScanning,
-    detectedDevices,
-    connectedDevices,
+    scan,
     connectToDevice,
+    devices,
+    connectedDevices,
   } = useBluetooth()
-  const [lockButton, setLockButton] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  const [enablingBluetooth, setEnablingBluetooth] = useState(false)
 
-  const bluetoothEnabled = bluetoothState === State.PoweredOn
+  // Automatically scan for devices
+  useEffect(() => {
+    if (bluetoothEnabled) {
+      scan()
+    }
+  }, [bluetoothEnabled, scan])
 
-  const handleConnectToDevice = (device: Device) => {
+  const handleConnectToDevice = (device: typeof devices[number]) => {
     setConnecting(true)
     connectToDevice(device).finally(() => setConnecting(false))
   }
@@ -49,7 +54,7 @@ export const ScanningView = () => {
         <Title style={{ padding: 24, textAlign: 'center' }}>
           Bluetooth is turned off{'\n'}You better change it ;)
         </Title>
-      ) : !detectedDevices.length ? (
+      ) : !devices.length ? (
         <Title style={{ padding: 24, textAlign: 'center' }}>
           No bluetooth devices detected{'\n'}Scan devices to find some!
         </Title>
@@ -60,7 +65,7 @@ export const ScanningView = () => {
             {'\n'}It&apos;s best to stop scanning before connecting
           </Title>
           <ScrollView>
-            {detectedDevices.map((device) => {
+            {devices.map((device) => {
               const connected = connectedDevices.some((d) => d.id === device.id)
               const textStyle: StyleProp<TextStyle> = {
                 color: connected ? lightGreen[300] : blueGrey[100],
@@ -74,7 +79,9 @@ export const ScanningView = () => {
                   }
                   titleStyle={textStyle}
                   descriptionStyle={textStyle}
-                  description={`ID: ${device.id}`}
+                  description={`ID: ${device.id}${
+                    device.paired ? ' (paired)' : ''
+                  }`}
                   left={DeviceListIcon}
                   disabled={connecting || connected}
                   onPress={() => {
@@ -95,14 +102,23 @@ export const ScanningView = () => {
         labelStyle={{ fontSize: 18, padding: 16 }}
         icon="camera"
         mode="contained"
-        disabled={!bluetoothEnabled || lockButton}
         onPress={() => {
-          setLockButton(true)
-          toggleScanning(!scanning).finally(() => setLockButton(false))
+          if (!bluetoothEnabled) {
+            setEnablingBluetooth(true)
+            requestBluetoothEnable().finally(() => setEnablingBluetooth(false))
+            return
+          }
+          if (!scanning) {
+            scan()
+          }
         }}
-        loading={scanning}
+        loading={scanning || enablingBluetooth}
       >
-        {scanning ? 'Stop scanning' : 'Scan devices'}
+        {!bluetoothEnabled
+          ? 'Enable bluetooth'
+          : scanning
+          ? 'Scanning...'
+          : 'Scan devices'}
       </Button>
     </View>
   )

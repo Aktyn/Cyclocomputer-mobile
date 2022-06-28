@@ -19,9 +19,10 @@ import {
 } from 'react-native'
 import { configureFonts, DefaultTheme, Provider } from 'react-native-paper'
 import { Fonts } from 'react-native-paper/lib/typescript/types'
-import { BluetoothProvider } from './bluetooth/Bluetooth'
+import { BluetoothProvider, useBluetooth } from './bluetooth/Bluetooth'
 import { SnackbarProvider } from './snackbar/Snackbar'
 import { darkTheme } from './themes/darkTheme'
+import { MainView } from './views/MainView'
 import { ScanningView } from './views/ScanningView'
 
 LogBox.ignoreAllLogs()
@@ -49,11 +50,17 @@ const fontConfig: {
   },
 }
 
+enum VIEW {
+  SCANNING,
+  MAIN,
+}
+
 const App = () => {
   const colorScheme = useColorScheme()
   // const dimensions = useDimensions()
 
   const [appIsReady, setAppIsReady] = useState(false)
+  const [view, setView] = useState(VIEW.SCANNING)
 
   useEffect(() => {
     async function prepare() {
@@ -90,6 +97,16 @@ const App = () => {
     }
   }, [appIsReady])
 
+  const { connectedDevices } = useBluetooth()
+
+  useEffect(() => {
+    if (connectedDevices.length) {
+      setView(VIEW.MAIN)
+    } else {
+      setView(VIEW.SCANNING)
+    }
+  }, [connectedDevices.length])
+
   // console.log('color scheme: ', colorScheme, 'dimensions: ', dimensions)
 
   if (!appIsReady) {
@@ -102,7 +119,11 @@ const App = () => {
         <BluetoothProvider>
           <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
             <StatusBar style="auto" />
-            <ScanningView />
+            {view === VIEW.SCANNING ? (
+              <ScanningView />
+            ) : view === VIEW.MAIN ? (
+              <MainView />
+            ) : null}
             {/* <Headline>Headline</Headline>
         <Title>Title</Title>
         <Subheading>Subheading</Subheading>
