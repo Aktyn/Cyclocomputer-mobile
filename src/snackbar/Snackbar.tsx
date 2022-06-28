@@ -2,6 +2,7 @@ import {
   createContext,
   FC,
   PropsWithChildren,
+  useCallback,
   useContext,
   useState,
 } from 'react'
@@ -34,9 +35,9 @@ export const SnackbarProvider: FC<PropsWithChildren<unknown>> = ({
     { id: string; options: SnackbarOptions }[]
   >([])
 
-  const openSnackbar = (options: SnackbarOptions) => {
+  const openSnackbar = useCallback((options: SnackbarOptions) => {
     setSnackbars((s) => [...s, { id: uuid.v4() as string, options }])
-  }
+  }, [])
 
   return (
     <SnackbarContext.Provider value={{ openSnackbar }}>

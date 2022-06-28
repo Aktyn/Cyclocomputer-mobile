@@ -49,7 +49,7 @@ const fontConfig: {
   },
 }
 
-export default function App() {
+const App = () => {
   const colorScheme = useColorScheme()
   // const dimensions = useDimensions()
 
@@ -124,3 +124,5 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBarProps.currentHeight : 0,
   },
 })
+
+export default App

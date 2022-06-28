@@ -1,7 +1,13 @@
 import React, { useState } from 'react'
 import { blueGrey, lightGreen } from 'material-ui-colors'
-import { StyleProp, StyleSheet, TextStyle, View } from 'react-native'
-import { State } from 'react-native-ble-plx'
+import {
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  TextStyle,
+  View,
+} from 'react-native'
+import { Device, State } from 'react-native-ble-plx'
 import { Button, Title, List } from 'react-native-paper'
 import { useBluetooth } from '../bluetooth/Bluetooth'
 
@@ -32,9 +38,9 @@ export const ScanningView = () => {
 
   const bluetoothEnabled = bluetoothState === State.PoweredOn
 
-  const handleConnectToDevice = (deviceId: string) => {
+  const handleConnectToDevice = (device: Device) => {
     setConnecting(true)
-    connectToDevice(deviceId).finally(() => setConnecting(false))
+    connectToDevice(device).finally(() => setConnecting(false))
   }
 
   return (
@@ -48,37 +54,40 @@ export const ScanningView = () => {
           No bluetooth devices detected{'\n'}Scan devices to find some!
         </Title>
       ) : (
-        detectedDevices.map((device) => {
-          const connected = connectedDevices.some((d) => d.id === device.id)
-          const textStyle: StyleProp<TextStyle> = {
-            color: connected ? lightGreen[300] : blueGrey[100],
-          }
+        <View style={styles.container}>
+          <Title style={{ padding: 24, textAlign: 'center' }}>
+            Find Cyclocomputer device in below list to establish connection
+            {'\n'}It&apos;s best to stop scanning before connecting
+          </Title>
+          <ScrollView>
+            {detectedDevices.map((device) => {
+              const connected = connectedDevices.some((d) => d.id === device.id)
+              const textStyle: StyleProp<TextStyle> = {
+                color: connected ? lightGreen[300] : blueGrey[100],
+              }
 
-          return (
-            <View key={device.id}>
-              <Title style={{ padding: 24, textAlign: 'center' }}>
-                Find Pico-BLE device in below list to establish connection
-                {'\n'}It&apos;s best to stop scanning before connecting
-              </Title>
-              <List.Item
-                title={
-                  connecting ? `${device.name} -> Connecting...` : device.name
-                }
-                titleStyle={textStyle}
-                descriptionStyle={textStyle}
-                description={`ID: ${device.id}`}
-                left={DeviceListIcon}
-                disabled={connecting || connected}
-                onPress={() => {
-                  if (connecting || connected) {
-                    return
+              return (
+                <List.Item
+                  key={device.id}
+                  title={
+                    connecting ? `${device.name} -> Connecting...` : device.name
                   }
-                  handleConnectToDevice(device.id)
-                }}
-              />
-            </View>
-          )
-        })
+                  titleStyle={textStyle}
+                  descriptionStyle={textStyle}
+                  description={`ID: ${device.id}`}
+                  left={DeviceListIcon}
+                  disabled={connecting || connected}
+                  onPress={() => {
+                    if (connecting || connected) {
+                      return
+                    }
+                    handleConnectToDevice(device)
+                  }}
+                />
+              )
+            })}
+          </ScrollView>
+        </View>
       )}
       <Button
         dark
