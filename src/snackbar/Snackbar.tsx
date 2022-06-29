@@ -6,6 +6,7 @@ import {
   useContext,
   useState,
 } from 'react'
+import { cyan } from 'material-ui-colors'
 import { Snackbar } from 'react-native-paper'
 import uuid from 'react-native-uuid'
 
@@ -49,12 +50,14 @@ export const SnackbarProvider: FC<PropsWithChildren<unknown>> = ({
           onDismiss={() =>
             setSnackbars((items) => items.filter((s) => s.id !== id))
           }
-          // action={{
-          //   label: 'Dismiss',
-          //   onPress: () => {
-          //     // Do something
-          //   },
-          // }}
+          action={{
+            color: cyan[100],
+            label: 'Close',
+            mode: 'text',
+            // onPress: () => {
+            //   // -
+            // },
+          }}
         >
           {options.message}
         </Snackbar>

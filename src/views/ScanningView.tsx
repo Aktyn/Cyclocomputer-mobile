@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { blueGrey, lightGreen } from 'material-ui-colors'
+import { blueGrey, cyan, lightGreen } from 'material-ui-colors'
 import {
   ScrollView,
   StyleProp,
@@ -33,7 +33,7 @@ export const ScanningView = () => {
     devices,
     connectedDevices,
   } = useBluetooth()
-  const [connecting, setConnecting] = useState(false)
+  const [connecting, setConnecting] = useState('')
   const [enablingBluetooth, setEnablingBluetooth] = useState(false)
 
   // Automatically scan for devices
@@ -44,8 +44,8 @@ export const ScanningView = () => {
   }, [bluetoothEnabled, scan])
 
   const handleConnectToDevice = (device: typeof devices[number]) => {
-    setConnecting(true)
-    connectToDevice(device).finally(() => setConnecting(false))
+    setConnecting(device.id)
+    connectToDevice(device).finally(() => setConnecting(''))
   }
 
   return (
@@ -68,14 +68,20 @@ export const ScanningView = () => {
             {devices.map((device) => {
               const connected = connectedDevices.some((d) => d.id === device.id)
               const textStyle: StyleProp<TextStyle> = {
-                color: connected ? lightGreen[300] : blueGrey[100],
+                color: connected
+                  ? lightGreen[300]
+                  : device.id === '6B:14:9B:03:03:99'
+                  ? cyan[200]
+                  : blueGrey[100],
               }
 
               return (
                 <List.Item
                   key={device.id}
                   title={
-                    connecting ? `${device.name} -> Connecting...` : device.name
+                    connecting === device.id
+                      ? `${device.name} -> Connecting...`
+                      : device.name
                   }
                   titleStyle={textStyle}
                   descriptionStyle={textStyle}
@@ -83,9 +89,9 @@ export const ScanningView = () => {
                     device.paired ? ' (paired)' : ''
                   }`}
                   left={DeviceListIcon}
-                  disabled={connecting || connected}
+                  disabled={!!connecting || connected}
                   onPress={() => {
-                    if (connecting || connected) {
+                    if (!!connecting || connected) {
                       return
                     }
                     handleConnectToDevice(device)

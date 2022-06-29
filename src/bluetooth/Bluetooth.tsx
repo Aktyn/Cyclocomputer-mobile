@@ -7,64 +7,18 @@ import {
   useEffect,
   useState,
 } from 'react'
+import { Buffer } from '@craftzdog/react-native-buffer'
+import { EmitterSubscription } from 'react-native'
 import BluetoothSerial from 'react-native-bluetooth-serial-next'
 import { useSnackbar } from '../snackbar/Snackbar'
 import { requestBluetoothPermission } from './common'
+import { MessageType } from './message'
 
 const asyncNoop = () => Promise.resolve() as Promise<never>
-
-// const id = '6B:14:9B:03:03:99'
-
-// async function test() {
-//   const id = '6B:14:9B:03:03:99'
-
-//   console.log('Bluetooth enabled:', await BluetoothSerial.isEnabled())
-
-//   const paired =
-//     (await BluetoothSerial.list()) as BluetoothSerial.AndroidBluetoothDevice[]
-//   // console.log('x', paired);
-
-//   const deviceInfo =
-//     paired.find((p: BluetoothSerial.AndroidBluetoothDevice) => p.id === id) ||
-//     (await BluetoothSerial.pairDevice(id))
-//   console.log(deviceInfo)
-
-//   if (deviceInfo) {
-//     const device = await BluetoothSerial.device(deviceInfo.id)
-//     // console.log('device', device)
-//     device.read((data, _subscription) => {
-//       console.log('data', data)
-
-//       // subscription.remove()
-//       return {}
-//     })
-//     await device.connect()
-//     console.log('connected')
-//     // await device.readFromDevice()
-
-//     await new Promise((resolve) => setTimeout(resolve, 2000))
-//     console.log(await device.readFromDevice())
-
-//     await new Promise((resolve) => setTimeout(resolve, 2000))
-//     console.log(
-//       await device.write(
-//         new Array(128 * 128)
-//           .fill('null')
-//           .map((_, i) => i % 2)
-//           .join('') + 'HUH',
-//       ),
-//     )
-//   } else {
-//     console.log('no device')
-//   }
-// }
-
-// test().catch(console.error)
 
 interface DeviceInfo extends BluetoothSerial.AndroidBluetoothDevice {
   paired: boolean
 }
-
 interface BluetoothInterface {
   bluetoothEnabled: boolean
   requestBluetoothEnable: () => Promise<void>
@@ -73,6 +27,11 @@ interface BluetoothInterface {
   connectToDevice: (device: DeviceInfo) => Promise<void>
   devices: DeviceInfo[]
   connectedDevices: BluetoothSerial.AndroidBluetoothDevice[]
+  sendData: (
+    deviceId: string,
+    type: MessageType,
+    data: string | Uint8Array,
+  ) => Promise<boolean>
 }
 
 const BluetoothContext = createContext<BluetoothInterface>({
@@ -83,6 +42,7 @@ const BluetoothContext = createContext<BluetoothInterface>({
   connectToDevice: asyncNoop,
   devices: [],
   connectedDevices: [],
+  sendData: asyncNoop,
 })
 
 export const useBluetooth = () => {
@@ -179,22 +139,20 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
         enabled ? handleBluetoothEnabled() : handleBluetoothDisabled(),
       )
 
-    BluetoothSerial.on('bluetoothEnabled', handleBluetoothEnabled)
-    BluetoothSerial.on('bluetoothDisabled', handleBluetoothDisabled)
-    BluetoothSerial.on('connectionSuccess', handleConnectionSuccess)
-    BluetoothSerial.on('connectionFailed', handleConnectionFailed)
-    BluetoothSerial.on('connectionLost', handleConnectionLost)
-    BluetoothSerial.on('data', handleData)
-    BluetoothSerial.on('error', handleError)
+    const subscriptions: EmitterSubscription[] = []
+
+    subscriptions.push(
+      BluetoothSerial.on('bluetoothEnabled', handleBluetoothEnabled),
+      BluetoothSerial.on('bluetoothDisabled', handleBluetoothDisabled),
+      BluetoothSerial.on('connectionSuccess', handleConnectionSuccess),
+      BluetoothSerial.on('connectionFailed', handleConnectionFailed),
+      BluetoothSerial.on('connectionLost', handleConnectionLost),
+      BluetoothSerial.on('data', handleData),
+      BluetoothSerial.on('error', handleError),
+    )
 
     return () => {
-      BluetoothSerial.off('bluetoothEnabled', handleBluetoothEnabled)
-      BluetoothSerial.off('bluetoothDisabled', handleBluetoothDisabled)
-      BluetoothSerial.off('connectionSuccess', handleConnectionSuccess)
-      BluetoothSerial.off('connectionFailed', handleConnectionFailed)
-      BluetoothSerial.off('connectionLost', handleConnectionLost)
-      BluetoothSerial.off('data', handleData)
-      BluetoothSerial.off('error', handleError)
+      subscriptions.forEach((subscription) => subscription.remove())
       BluetoothSerial.removeAllListeners()
     }
   }, [openSnackbar])
@@ -214,13 +172,21 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
 
         const paired =
           (await BluetoothSerial.list()) as BluetoothSerial.AndroidBluetoothDevice[]
-        discoveredDevices.push(...paired.map((p) => ({ ...p, paired: true })))
+        discoveredDevices.push(
+          ...paired
+            .filter((p) => !!p.name)
+            .map((p) => ({ ...p, paired: true })),
+        )
         setDevices(discoveredDevices)
 
         const unpaired =
           (await BluetoothSerial.discoverUnpairedDevices()) as BluetoothSerial.AndroidBluetoothDevice[]
         discoveredDevices.push(
-          ...unpaired.map((p) => ({ ...p, paired: false })),
+          ...unpaired
+            .filter(
+              (p) => !!p.name && !discoveredDevices.find((d) => d.id === p.id),
+            )
+            .map((p) => ({ ...p, paired: false })),
         )
         setDevices(discoveredDevices)
 
@@ -240,8 +206,8 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
     [openSnackbar],
   )
 
-  const connectToDevice = useCallback(
-    async (deviceInfo: DeviceInfo) => {
+  const connectToDevice = useCallback<BluetoothInterface['connectToDevice']>(
+    async (deviceInfo) => {
       try {
         if (!deviceInfo.paired) {
           await BluetoothSerial.pairDevice(deviceInfo.id)
@@ -253,6 +219,29 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
         openSnackbar({
           message: `Cannot connect to device ${deviceInfo.name}`,
         })
+      }
+    },
+    [openSnackbar],
+  )
+
+  const sendData = useCallback<BluetoothInterface['sendData']>(
+    async (deviceId, type, data) => {
+      try {
+        const device = await BluetoothSerial.device(deviceId)
+        const rawData = Buffer.from(data as never)
+        const buffer = Buffer.concat([
+          Buffer.from(Uint8Array.from([type])),
+          Buffer.from(Uint32Array.from([rawData.length])),
+          rawData,
+        ])
+        return device.write(buffer.toString('base64'))
+      } catch (error: unknown) {
+        openSnackbar({
+          message: `Cannot send data to device: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        })
+        return false
       }
     },
     [openSnackbar],
@@ -278,6 +267,7 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
         connectToDevice,
         devices,
         connectedDevices,
+        sendData,
       }}
     >
       {children}
