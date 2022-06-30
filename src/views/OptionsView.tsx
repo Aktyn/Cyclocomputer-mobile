@@ -23,10 +23,10 @@ export const OptionsView = () => {
       sendData(
         cyclocomputer.id,
         MessageType.SET_CIRCUMFERENCE,
-        new Uint8Array(Float32Array.from([value]).buffer),
+        new Uint8Array(Float32Array.from([value]).buffer).buffer,
       ).then((success) => {
-        if (success) {
-          openSnackbar({ message: 'Circumference updated' })
+        if (!success) {
+          openSnackbar({ message: 'Cannot update circumference updated' })
         }
       })
     },
@@ -70,7 +70,6 @@ export const OptionsView = () => {
         label="Circumference (cm)"
         value={circumferenceText}
         mode="outlined"
-        // autoFocus
         left={<TextInput.Icon name="circle-edit-outline" />}
         maxLength={6}
         keyboardType="numeric"

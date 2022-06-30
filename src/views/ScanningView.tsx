@@ -45,6 +45,7 @@ export const ScanningView = () => {
 
   const handleConnectToDevice = (device: typeof devices[number]) => {
     setConnecting(device.id)
+    //TODO: useCancellablePromise
     connectToDevice(device).finally(() => setConnecting(''))
   }
 
@@ -71,7 +72,7 @@ export const ScanningView = () => {
                 color: connected
                   ? lightGreen[300]
                   : device.id === '6B:14:9B:03:03:99'
-                  ? cyan[200]
+                  ? cyan[100]
                   : blueGrey[100],
               }
 

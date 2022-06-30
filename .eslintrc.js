@@ -124,6 +124,7 @@ module.exports = {
     'react/react-in-jsx-scope': 'off',
     'no-console': 'warn',
     'react-native/no-inline-styles': 'off',
+    'no-bitwise': 'off',
   },
   overrides: [
     {

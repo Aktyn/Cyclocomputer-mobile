@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 import { Buffer } from '@craftzdog/react-native-buffer'
@@ -30,7 +31,7 @@ interface BluetoothInterface {
   sendData: (
     deviceId: string,
     type: MessageType,
-    data: string | Uint8Array,
+    data: string | ArrayBuffer,
   ) => Promise<boolean>
 }
 
@@ -54,6 +55,7 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
   children,
 }) => {
   const { openSnackbar } = useSnackbar()
+  const dataSubscriptionsRef = useRef(new Map<number, EmitterSubscription>())
 
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -112,12 +114,12 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
         })
       }
     }
-    const handleData = (result: { id: string; data: string }) => {
-      if (result) {
-        const { id, data } = result
-        console.log(`Data from device ${id} : ${data}`)
-      }
-    }
+    // const handleData = (result: { id: string; data: string }) => {
+    //   if (result) {
+    //     const { id, data } = result
+    //     console.log(`Data from device ${id} : ${data}`)
+    //   }
+    // }
     const handleError = (e: Error) => {
       openSnackbar({
         message: `Error: ${e.message}`,
@@ -147,12 +149,15 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
       BluetoothSerial.on('connectionSuccess', handleConnectionSuccess),
       BluetoothSerial.on('connectionFailed', handleConnectionFailed),
       BluetoothSerial.on('connectionLost', handleConnectionLost),
-      BluetoothSerial.on('data', handleData),
+      // BluetoothSerial.on('data', handleData),
       BluetoothSerial.on('error', handleError),
     )
 
+    const dataSubscriptionsMap = dataSubscriptionsRef.current
+
     return () => {
       subscriptions.forEach((subscription) => subscription.remove())
+      dataSubscriptionsMap.forEach((subscription) => subscription.remove())
       BluetoothSerial.removeAllListeners()
     }
   }, [openSnackbar])
@@ -215,6 +220,11 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
 
         const device = await BluetoothSerial.device(deviceInfo.id)
         await device.connect()
+
+        setInterval(async () => {
+          //TODO
+          console.log('hm', await device.readFromDevice())
+        }, 5000)
       } catch (e) {
         openSnackbar({
           message: `Cannot connect to device ${deviceInfo.name}`,
@@ -228,13 +238,15 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
     async (deviceId, type, data) => {
       try {
         const device = await BluetoothSerial.device(deviceId)
-        const rawData = Buffer.from(data as never)
+        const rawDataLength =
+          typeof data === 'string' ? data.length : data.byteLength
         const buffer = Buffer.concat([
           Buffer.from(Uint8Array.from([type])),
-          Buffer.from(Uint32Array.from([rawData.length])),
-          rawData,
+          Buffer.from(new Uint8Array(Uint32Array.from([rawDataLength]).buffer)),
+          Buffer.from(data as never),
         ])
-        return device.write(buffer.toString('base64'))
+
+        return device.write(buffer as never)
       } catch (error: unknown) {
         openSnackbar({
           message: `Cannot send data to device: ${
