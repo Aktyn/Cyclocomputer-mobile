@@ -1,9 +1,12 @@
 import assert from 'assert'
+import { PixelRatio } from 'react-native'
 import Canvas, { CanvasRenderingContext2D, Image } from 'react-native-canvas'
 import { clamp } from './utils'
 
-// const THUNDERFOREST_API_KEY = 'fc7597d58d1940a1b40746746a704993' //TODO: hide it
-const TILE_RESOLUTION = 256
+const TILE_RESOLUTION = 256 //openstreetmap tile resolution
+
+const scalar = 1e14
+const pixelRatio = PixelRatio.getPixelSizeForLayoutSize(scalar) / scalar
 
 interface ImageCache {
   image: Image
@@ -30,6 +33,8 @@ function convertLatLongToTile(
 export class MapGenerator {
   static OUTPUT_RESOLUTION = 128
 
+  private readonly canvasResolution: number
+  private readonly relativeTileResolution: number
   private readonly canvas: Canvas
   private readonly ctx: CanvasRenderingContext2D
   private readonly zoom: number
@@ -38,19 +43,21 @@ export class MapGenerator {
   private imagesCache = new Map<string, ImageCache>()
 
   constructor(canvas: Canvas, zoom = 16) {
+    this.canvasResolution = PixelRatio.roundToNearestPixel(
+      MapGenerator.OUTPUT_RESOLUTION / pixelRatio,
+    )
+    this.relativeTileResolution = PixelRatio.roundToNearestPixel(
+      TILE_RESOLUTION / pixelRatio,
+    )
+
     this.canvas = canvas
-    this.canvas.width = MapGenerator.OUTPUT_RESOLUTION
-    this.canvas.height = MapGenerator.OUTPUT_RESOLUTION
+    this.canvas.width = this.canvasResolution
+    this.canvas.height = this.canvasResolution
     this.zoom = zoom
 
     this.ctx = canvas.getContext('2d')
     this.ctx.fillStyle = '#fff'
-    this.ctx.fillRect(
-      0,
-      0,
-      MapGenerator.OUTPUT_RESOLUTION,
-      MapGenerator.OUTPUT_RESOLUTION,
-    )
+    this.ctx.fillRect(0, 0, this.canvasResolution, this.canvasResolution)
   }
 
   private fetchTile(x: number, y: number) {
@@ -100,12 +107,12 @@ export class MapGenerator {
   private drawPositionIndicator() {
     this.ctx.fillStyle = '#fff'
     this.ctx.strokeStyle = '#000'
-    this.ctx.lineWidth = 4
+    this.ctx.lineWidth = 4 / pixelRatio
     this.ctx.beginPath()
     this.ctx.arc(
-      MapGenerator.OUTPUT_RESOLUTION / 2,
-      MapGenerator.OUTPUT_RESOLUTION / 2,
-      this.positionIndicatorRadius,
+      this.canvasResolution / 2,
+      this.canvasResolution / 2,
+      this.positionIndicatorRadius / pixelRatio,
       0,
       2 * Math.PI,
     )
@@ -123,20 +130,18 @@ export class MapGenerator {
     const tileOffsetX = clamp(tilePosition.x - x, 0, 1)
     const tileOffsetY = clamp(tilePosition.y - y, 0, 1)
 
-    this.ctx.save() //saves the state of canvas
+    this.ctx.save()
+    this.ctx.translate(this.canvasResolution / 2, this.canvasResolution / 2)
+    this.ctx.rotate(rotation)
     this.ctx.translate(
-      MapGenerator.OUTPUT_RESOLUTION / 2,
-      MapGenerator.OUTPUT_RESOLUTION / 2,
-    ) //let's translate
-    this.ctx.rotate(rotation) //increment the angle and rotate the image
-    this.ctx.translate(
-      -(MapGenerator.OUTPUT_RESOLUTION / 2),
-      -(MapGenerator.OUTPUT_RESOLUTION / 2),
-    ) //let's translate
+      -(this.canvasResolution / 2),
+      -(this.canvasResolution / 2),
+    )
 
     const relevantKeys = new Set<string>()
 
     //TODO: Consider situation when there is temporarily no internet access. Knowing route, all tiles on it could be preloaded and cached.
+    //isOnRoute(tileX, tileY)
 
     const tilesGridRadius = 1
     const r = tilesGridRadius + 1
@@ -169,14 +174,14 @@ export class MapGenerator {
         ) {
           this.ctx.drawImage(
             image,
-            MapGenerator.OUTPUT_RESOLUTION / 2 -
-              tileOffsetX * TILE_RESOLUTION +
-              (imageCache.tileX - x) * TILE_RESOLUTION,
-            MapGenerator.OUTPUT_RESOLUTION / 2 -
-              tileOffsetY * TILE_RESOLUTION +
-              (imageCache.tileY - y) * TILE_RESOLUTION,
-            TILE_RESOLUTION,
-            TILE_RESOLUTION,
+            this.canvasResolution / 2 -
+              tileOffsetX * this.relativeTileResolution +
+              (imageCache.tileX - x) * this.relativeTileResolution,
+            this.canvasResolution / 2 -
+              tileOffsetY * this.relativeTileResolution +
+              (imageCache.tileY - y) * this.relativeTileResolution,
+            this.relativeTileResolution,
+            this.relativeTileResolution,
           )
         }
       }
@@ -191,8 +196,18 @@ export class MapGenerator {
         this.imagesCache.delete(key)
       }
     }
+
+    //TEST
+    const relativeSize = PixelRatio.getPixelSizeForLayoutSize(
+      this.canvasResolution,
+    )
+    if (relativeSize !== MapGenerator.OUTPUT_RESOLUTION) {
+      throw new Error(
+        `Relative size is ${relativeSize} but it must be ${MapGenerator.OUTPUT_RESOLUTION}`,
+      )
+    }
     return this.ctx
-      .getImageData(0, 0, this.canvas.width, this.canvas.height)
+      .getImageData(0, 0, relativeSize, relativeSize)
       .then((imageData) => imageData.data)
   }
 }

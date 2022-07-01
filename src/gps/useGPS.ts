@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import * as Location from 'expo-location'
-import { pick } from '../utils'
+import { distanceBetweenEarthCoordinatesInKm, pick } from '../utils'
 
 export function useGPS() {
   const [granted, setGranted] = useState(false)
   const [coordinates, setCoordinates] = useState({
     latitude: 0,
     longitude: 0,
-    heading: null as number | null,
+    heading: 0,
+    altitude: -Number.MAX_SAFE_INTEGER,
+    slope: 0,
+    speed: 0,
   })
 
   useEffect(() => {
@@ -15,7 +18,7 @@ export function useGPS() {
 
     Location.requestForegroundPermissionsAsync().then(
       (foregroundPermission) => {
-        console.log('foregroundPermission', foregroundPermission)
+        // console.log('foregroundPermission', foregroundPermission)
         if (!foregroundPermission.granted) {
           return
         }
@@ -23,16 +26,37 @@ export function useGPS() {
 
         Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.High, //BestForNavigation
-            distanceInterval: 10,
-            timeInterval: 2000,
+            accuracy: Location.Accuracy.BestForNavigation, //High, BestForNavigation
+            // distanceInterval: 10,
+            // timeInterval: 2000,
           },
           (location) => {
-            console.log(location)
-            setCoordinates(
-              pick(location.coords, 'latitude', 'longitude', 'heading'),
-            )
-            //TODO: test location.altitude on mobile phone
+            // console.log(location)
+            setCoordinates((previous) => {
+              let slope = 0
+
+              if (previous.altitude !== -Number.MAX_SAFE_INTEGER) {
+                const verticalDistance =
+                  (location.coords.altitude ?? 0) - previous.altitude
+                const horizontalDistance =
+                  distanceBetweenEarthCoordinatesInKm(
+                    location.coords.latitude,
+                    location.coords.longitude,
+                    previous.latitude,
+                    previous.longitude,
+                  ) * 1000
+
+                slope = Math.atan2(verticalDistance, horizontalDistance)
+              }
+
+              return {
+                slope,
+                heading: location.coords.heading ?? 0,
+                altitude: location.coords.altitude ?? 0,
+                speed: location.coords.speed ?? 0,
+                ...pick(location.coords, 'latitude', 'longitude'),
+              }
+            })
           },
         ).then((subscription) => {
           locationSubscription = subscription

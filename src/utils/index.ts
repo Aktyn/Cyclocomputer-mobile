@@ -1,3 +1,5 @@
+export * from './math'
+
 export function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
@@ -29,4 +31,15 @@ export function omit<ObjectType, Key extends Extract<keyof ObjectType, string>>(
     }
   }
   return omitted
+}
+
+export function tryParseJSON<FallbackType = null>(
+  jsonString: string,
+  fallbackValue?: FallbackType,
+) {
+  try {
+    return JSON.parse(jsonString)
+  } catch (e) {
+    return fallbackValue ?? null
+  }
 }

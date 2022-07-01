@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native'
 import { Button, Title, List } from 'react-native-paper'
-import { useBluetooth } from '../bluetooth/Bluetooth'
+import { useBluetooth } from '../bluetooth'
+import useCancellablePromise from '../hooks/useCancellablePromise'
 
 type ListIconProps = {
   color: string
@@ -24,6 +25,7 @@ const DeviceListIcon = (props: ListIconProps) => (
 )
 
 export const ScanningView = () => {
+  const cancellable = useCancellablePromise()
   const {
     bluetoothEnabled,
     requestBluetoothEnable,
@@ -45,8 +47,9 @@ export const ScanningView = () => {
 
   const handleConnectToDevice = (device: typeof devices[number]) => {
     setConnecting(device.id)
-    //TODO: useCancellablePromise
-    connectToDevice(device).finally(() => setConnecting(''))
+    cancellable(connectToDevice(device))
+      .then(() => setConnecting(''))
+      .catch((err) => !err && setConnecting(''))
   }
 
   return (

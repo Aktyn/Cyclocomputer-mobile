@@ -19,7 +19,8 @@ import {
 } from 'react-native'
 import { configureFonts, DefaultTheme, Provider } from 'react-native-paper'
 import { Fonts } from 'react-native-paper/lib/typescript/types'
-import { BluetoothProvider } from './bluetooth/Bluetooth'
+import { BluetoothProvider } from './bluetooth'
+import { SettingsProvider } from './settings'
 import { SnackbarProvider } from './snackbar/Snackbar'
 import { darkTheme } from './themes/darkTheme'
 import { ViewRouter } from './views/ViewRouter'
@@ -97,16 +98,18 @@ const App = () => {
     <Provider theme={theme}>
       <SnackbarProvider>
         <BluetoothProvider>
-          <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
-            <StatusBar style="auto" />
-            <ViewRouter />
-            {/* <Headline>Headline</Headline>
+          <SettingsProvider>
+            <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
+              <StatusBar style="auto" />
+              <ViewRouter />
+              {/* <Headline>Headline</Headline>
         <Title>Title</Title>
         <Subheading>Subheading</Subheading>
         <Text>Text</Text>
         <Paragraph>Paragraph</Paragraph>
         <Caption>Caption</Caption> */}
-          </SafeAreaView>
+            </SafeAreaView>
+          </SettingsProvider>
         </BluetoothProvider>
       </SnackbarProvider>
     </Provider>
