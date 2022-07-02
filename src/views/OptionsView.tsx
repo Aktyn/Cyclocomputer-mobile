@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import * as DocumentPicker from 'expo-document-picker'
 import { ScrollView, StyleSheet } from 'react-native'
 import { TextInput } from 'react-native-paper'
 import { useSettings } from '../settings'
@@ -11,6 +12,19 @@ export const OptionsView = () => {
   const { settings, setSetting } = useSettings()
 
   const [circumferenceText, setCircumferenceText] = useState('')
+
+  const selectTourFile = () => {
+    DocumentPicker.getDocumentAsync({
+      type: 'application/octet-stream',
+    })
+      .then((data) => {
+        if (data.type === 'cancel') {
+          throw data
+        }
+        setSetting('gpxFile', data)
+      })
+      .catch(() => undefined)
+  }
 
   useEffect(() => {
     setCircumferenceText(settings.circumference.toString())
@@ -40,6 +54,14 @@ export const OptionsView = () => {
           setCircumferenceText(removeNonNumericCharacters(value))
         }
         onBlur={() => handleCircumferenceUpdate(circumferenceText)}
+      />
+      <TextInput
+        label="Tour"
+        value={settings.gpxFile?.name ?? ''}
+        mode="outlined"
+        left={<TextInput.Icon name="map-marker-path" />}
+        onPressIn={selectTourFile}
+        caretHidden
       />
     </ScrollView>
   )

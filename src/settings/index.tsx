@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { DocumentResult } from 'expo-document-picker'
 import { useBluetooth } from '../bluetooth'
 import { IncomingMessageType, MessageType } from '../bluetooth/message'
 import { useSnackbar } from '../snackbar/Snackbar'
@@ -15,6 +16,7 @@ import { tryParseJSON } from '../utils'
 
 const defaultSettings = {
   circumference: 223,
+  gpxFile: null as null | (DocumentResult & { type: 'success' }),
 }
 
 interface SettingsInterface {
@@ -26,9 +28,7 @@ interface SettingsInterface {
 }
 
 const SettingsContext = createContext<SettingsInterface>({
-  settings: {
-    circumference: 223,
-  },
+  settings: { ...defaultSettings },
   setSetting: () => undefined,
 })
 

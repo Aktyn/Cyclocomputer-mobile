@@ -13,6 +13,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#455a64"
     },
+    "plugins": [
+      "expo-document-picker"
+    ],
     "updates": {
       "fallbackToCacheTimeout": 0
     },

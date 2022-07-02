@@ -6,17 +6,21 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { cyan } from 'material-ui-colors'
 import { StyleProp, StyleSheet, TextStyle, View } from 'react-native'
 import Canvas from 'react-native-canvas'
 import {
   LeafletView,
   LatLng,
   WebviewLeafletMessage,
+  MapShapeType,
+  MapShape,
 } from 'react-native-leaflet-view'
 import { Subheading, Text } from 'react-native-paper'
 import { useBluetooth } from '../bluetooth'
 import { IncomingMessageType, MessageType } from '../bluetooth/message'
 import { useGPS } from '../gps/useGPS'
+import { useTour } from '../hooks/useTour'
 import { MapGenerator } from '../mapGenerator'
 import { useSnackbar } from '../snackbar/Snackbar'
 
@@ -68,6 +72,7 @@ export const MapView = memo(() => {
   const gps = useGPS()
   const { connectedDevices, sendData, messagesHandler } = useBluetooth()
   const cyclocomputer = connectedDevices[0] ?? { id: 'mock' }
+  const tour = useTour()
 
   const canvasRef = useRef<Canvas>(null)
   const mapGeneratorRef = useRef<MapGenerator>()
@@ -98,6 +103,19 @@ export const MapView = memo(() => {
     }),
     [gps.coordinates.latitude, gps.coordinates.longitude],
   )
+
+  const tourShapes = useMemo<MapShape[]>(() => {
+    return [
+      {
+        color: cyan[400],
+        positions: (tour ?? []).map((point) => ({
+          lat: point.latitude,
+          lng: point.longitude,
+        })),
+        shapeType: MapShapeType.POLYLINE,
+      },
+    ]
+  }, [tour])
 
   const sendMapPreview = useCallback(
     (imageData: Uint8ClampedArray) => {
@@ -146,6 +164,7 @@ export const MapView = memo(() => {
           gps.coordinates.latitude,
           gps.coordinates.longitude,
           -((gps.coordinates.heading ?? 0) * Math.PI) / 180,
+          tour,
         )
         .then(sendMapPreview)
         .catch((e) => {
@@ -170,9 +189,8 @@ export const MapView = memo(() => {
     gps.coordinates.longitude,
     openSnackbar,
     sendMapPreview,
+    tour,
   ])
-
-  //TODO: draw current route over map preview (loaded either from .gpx file or from komoot API)
 
   const handleLeafletViewUpdate = (message: WebviewLeafletMessage) => {
     if (
@@ -199,6 +217,11 @@ export const MapView = memo(() => {
         <Subheading style={styles.value}>
           {gps.coordinates.slope.toFixed(1)}%
         </Subheading>
+        <Subheading style={styles.label}>Heading:&nbsp;</Subheading>
+        <Subheading style={styles.value}>
+          {/* TODO: compass widget */}
+          {gps.coordinates.heading.toFixed(1)}°
+        </Subheading>
       </View>
       <View style={styles.map}>
         {gps.granted ? (
@@ -214,6 +237,7 @@ export const MapView = memo(() => {
                 iconAnchor: [8, 8],
               },
             ]}
+            mapShapes={tourShapes}
             mapCenterPosition={latLng}
             zoom={zoom}
             onMessageReceived={handleLeafletViewUpdate}

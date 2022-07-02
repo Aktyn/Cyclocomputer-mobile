@@ -1,6 +1,7 @@
 import assert from 'assert'
 import { PixelRatio } from 'react-native'
 import Canvas, { CanvasRenderingContext2D, Image } from 'react-native-canvas'
+import { GeoPoint } from './hooks/useTour'
 import { clamp } from './utils'
 
 const TILE_RESOLUTION = 256 //openstreetmap tile resolution
@@ -120,7 +121,12 @@ export class MapGenerator {
     this.ctx.fill()
   }
 
-  async update(latitude: number, longitude: number, rotation = 0) {
+  async update(
+    latitude: number,
+    longitude: number,
+    rotation: number,
+    _tour: GeoPoint[] | null, //TODO: since GeoPoint are kinda sorted, we can use closest point from previous update as pivot to start search from it
+  ) {
     const tilePosition = convertLatLongToTile(latitude, longitude, this.zoom)
 
     const maxI = 2 ** this.zoom
