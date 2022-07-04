@@ -22,6 +22,7 @@ import { IncomingMessageType, MessageType } from '../bluetooth/message'
 import { useGPS } from '../gps/useGPS'
 import { useTour } from '../hooks/useTour'
 import { MapGenerator } from '../mapGenerator'
+import { useSettings } from '../settings'
 import { useSnackbar } from '../snackbar/Snackbar'
 
 const DEFAULT_ZOOM = 16
@@ -69,6 +70,7 @@ const parseImageData = (data: Uint8ClampedArray) => {
 
 export const MapView = memo(() => {
   const { openSnackbar } = useSnackbar()
+  const { settings } = useSettings()
   const gps = useGPS()
   const { connectedDevices, sendData, messagesHandler } = useBluetooth()
   const cyclocomputer = connectedDevices[0] ?? { id: 'mock' }
@@ -108,10 +110,18 @@ export const MapView = memo(() => {
     return [
       {
         color: cyan[400],
-        positions: (tour ?? []).map((point) => ({
-          lat: point.latitude,
-          lng: point.longitude,
-        })),
+        positions: Array.from(tour.values())
+          .reduce((points, cluster) => {
+            for (const point of cluster) {
+              points.push({
+                index: point.index,
+                lat: point.latitude,
+                lng: point.longitude,
+              })
+            }
+            return points
+          }, [] as LatLng[])
+          .sort((a, b) => a.index - b.index),
         shapeType: MapShapeType.POLYLINE,
       },
     ]
@@ -143,8 +153,8 @@ export const MapView = memo(() => {
       return
     }
 
-    mapGeneratorRef.current = new MapGenerator(canvas)
-  }, [])
+    mapGeneratorRef.current = new MapGenerator(canvas, settings.mapZoom)
+  }, [settings.mapZoom])
 
   useEffect(() => {
     const mapGenerator = mapGeneratorRef.current

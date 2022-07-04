@@ -1,8 +1,8 @@
 import assert from 'assert'
 import { PixelRatio } from 'react-native'
 import Canvas, { CanvasRenderingContext2D, Image } from 'react-native-canvas'
-import { GeoPoint } from './hooks/useTour'
-import { clamp } from './utils'
+import { ClusteredTour } from './hooks/useTour'
+import { clamp, convertLatLongToTile } from './utils'
 
 const TILE_RESOLUTION = 256 //openstreetmap tile resolution
 
@@ -17,20 +17,6 @@ interface ImageCache {
   loadListeners: ((cache: ImageCache) => void)[]
 }
 
-//Converts latitude, longitude, zoom to tile coordinates
-function convertLatLongToTile(
-  latitude: number,
-  longitude: number,
-  zoom: number,
-) {
-  const lat_rad = (latitude / 180) * Math.PI
-  const n = 2 ** zoom
-  return {
-    x: ((longitude + 180.0) / 360.0) * n,
-    y: ((1.0 - Math.asinh(Math.tan(lat_rad)) / Math.PI) / 2.0) * n,
-  }
-}
-
 export class MapGenerator {
   static OUTPUT_RESOLUTION = 128
 
@@ -43,7 +29,7 @@ export class MapGenerator {
 
   private imagesCache = new Map<string, ImageCache>()
 
-  constructor(canvas: Canvas, zoom = 16) {
+  constructor(canvas: Canvas, zoom: number) {
     this.canvasResolution = PixelRatio.roundToNearestPixel(
       MapGenerator.OUTPUT_RESOLUTION / pixelRatio,
     )
@@ -105,15 +91,15 @@ export class MapGenerator {
     })
   }
 
-  private drawPositionIndicator() {
+  private drawPointer(x: number, y: number, radius: number) {
     this.ctx.fillStyle = '#fff'
     this.ctx.strokeStyle = '#000'
-    this.ctx.lineWidth = 4 / pixelRatio
+    this.ctx.lineWidth = radius / pixelRatio
     this.ctx.beginPath()
     this.ctx.arc(
-      this.canvasResolution / 2,
-      this.canvasResolution / 2,
-      this.positionIndicatorRadius / pixelRatio,
+      this.canvasResolution / 2 + x,
+      this.canvasResolution / 2 + y,
+      radius / pixelRatio,
       0,
       2 * Math.PI,
     )
@@ -125,7 +111,7 @@ export class MapGenerator {
     latitude: number,
     longitude: number,
     rotation: number,
-    _tour: GeoPoint[] | null, //TODO: since GeoPoint are kinda sorted, we can use closest point from previous update as pivot to start search from it
+    tour: ClusteredTour,
   ) {
     const tilePosition = convertLatLongToTile(latitude, longitude, this.zoom)
 
@@ -148,12 +134,18 @@ export class MapGenerator {
 
     //TODO: Consider situation when there is temporarily no internet access. Knowing route, all tiles on it could be preloaded and cached.
     //isOnRoute(tileX, tileY)
+    //edit: not it gets simpler as there is a ClusteredTour and each cluster corresponds to a distinct tile along the route
+
+    type GeoPoint = (ClusteredTour extends Map<string, infer P>
+      ? P
+      : Array<unknown>)[number]
+    const tourPoints: GeoPoint[] = []
 
     const tilesGridRadius = 1
     const r = tilesGridRadius + 1
     for (let xx = -r; xx <= r; xx++) {
       for (let yy = -r; yy <= r; yy++) {
-        const key = `${x + xx}-${y + yy}`
+        const key = `${(x + xx) % maxI}-${(y + yy) % maxI}` //NOTE: must match key format used in useTour
         relevantKeys.add(key)
         //Just preload edge images
         if (
@@ -190,9 +182,36 @@ export class MapGenerator {
             this.relativeTileResolution,
           )
         }
+
+        //Extract points from tour cluster
+        if (tour.has(key)) {
+          tourPoints.push(...(tour.get(key) as GeoPoint[]))
+        }
       }
     }
-    this.drawPositionIndicator()
+
+    if (tourPoints.length > 1) {
+      tourPoints.sort((p1, p2) => p1.index - p2.index)
+
+      this.ctx.lineWidth = 1
+      this.ctx.strokeStyle = '#5ff'
+
+      //TODO: try to draw arrows showing path direction
+      this.ctx.beginPath()
+      for (const {
+        tilePos: { x: tourPointX, y: tourPointY },
+      } of tourPoints) {
+        const diffX = tourPointX - tilePosition.x
+        const diffY = tourPointY - tilePosition.y
+        this.ctx.lineTo(
+          (diffX + 0.5) * this.canvasResolution,
+          (diffY + 0.5) * this.canvasResolution,
+        )
+      }
+      this.ctx.stroke()
+    }
+
+    this.drawPointer(0, 0, this.positionIndicatorRadius)
 
     this.ctx.restore()
 

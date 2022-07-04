@@ -23,3 +23,17 @@ export const distanceBetweenEarthCoordinatesInKm = (
 
   return earthRadiusInKm * c
 }
+
+/** Converts latitude, longitude, zoom to tile coordinates */
+export function convertLatLongToTile(
+  latitude: number,
+  longitude: number,
+  zoom: number,
+) {
+  const lat_rad = (latitude / 180) * Math.PI
+  const n = 2 ** zoom
+  return {
+    x: ((longitude + 180.0) / 360.0) * n,
+    y: ((1.0 - Math.asinh(Math.tan(lat_rad)) / Math.PI) / 2.0) * n,
+  }
+}

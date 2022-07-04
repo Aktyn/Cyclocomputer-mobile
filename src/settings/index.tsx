@@ -17,6 +17,7 @@ import { tryParseJSON } from '../utils'
 const defaultSettings = {
   circumference: 223,
   gpxFile: null as null | (DocumentResult & { type: 'success' }),
+  mapZoom: 16,
 }
 
 interface SettingsInterface {
@@ -80,9 +81,10 @@ export const SettingsProvider: FC<PropsWithChildren<unknown>> = ({
   useEffect(() => {
     AsyncStorage.getItem('@settings')
       .then((settingsString) => {
-        if (settingsString) {
-          setSettings(tryParseJSON(settingsString, defaultSettings))
-        }
+        setSettings({
+          ...defaultSettings,
+          ...tryParseJSON(settingsString ?? '{}', {}),
+        })
       })
       .catch((error) => {
         openSnackbar({
