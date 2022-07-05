@@ -64,9 +64,6 @@ export const SettingsProvider: FC<PropsWithChildren<unknown>> = ({
 
     const handleMessage = (message: IncomingMessageType, _data: Uint8Array) => {
       if (message === IncomingMessageType.REQUEST_SETTINGS) {
-        console.log(
-          'Sending settings after receiving request for settings update',
-        )
         sendUpdate()
       }
     }
@@ -98,14 +95,17 @@ export const SettingsProvider: FC<PropsWithChildren<unknown>> = ({
   const setSetting = useCallback<SettingsInterface['setSetting']>(
     (key, value) => {
       setSettings((s) => {
-        AsyncStorage.setItem('@settings', JSON.stringify(s)).catch((error) => {
-          openSnackbar({
-            message: `Cannot update "${key}" setting: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          })
-        })
-        return { ...s, [key]: value }
+        const newSettings = { ...s, [key]: value }
+        AsyncStorage.setItem('@settings', JSON.stringify(newSettings)).catch(
+          (error) => {
+            openSnackbar({
+              message: `Cannot update "${key}" setting: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            })
+          },
+        )
+        return newSettings
       })
     },
     [openSnackbar],

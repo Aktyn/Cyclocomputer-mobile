@@ -46,6 +46,7 @@ export function useGPS() {
                     previous.longitude,
                   ) * 1000
 
+                //TODO: linearly weighted average of last few slope measurements
                 slope = Math.atan2(verticalDistance, horizontalDistance)
               }
 

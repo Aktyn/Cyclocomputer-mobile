@@ -25,7 +25,7 @@ export class MapGenerator {
   private readonly canvas: Canvas
   private readonly ctx: CanvasRenderingContext2D
   private readonly zoom: number
-  private readonly positionIndicatorRadius = 4
+  private readonly positionIndicatorRadius = 5
 
   private imagesCache = new Map<string, ImageCache>()
 
@@ -78,7 +78,8 @@ export class MapGenerator {
       imageCache.loadListeners.push(resolve)
 
       // image.src = `https://b.tile.thunderforest.com/cycle/${this.zoom}/${x}/${y}.png?apikey=${THUNDERFOREST_API_KEY}`
-      image.src = `https://a.tile.openstreetmap.org/${this.zoom}/${x}/${y}.png`
+      // image.src = `https://a.tile.openstreetmap.org/${this.zoom}/${x}/${y}.png`
+      image.src = `http://stamen-tiles-c.a.ssl.fastly.net/toner/${this.zoom}/${x}/${y}.png`
       image.addEventListener('load', () => {
         assert(imageCache)
         imageCache.loaded = true
@@ -104,6 +105,17 @@ export class MapGenerator {
       2 * Math.PI,
     )
     this.ctx.stroke()
+    this.ctx.fill()
+
+    this.ctx.fillStyle = '#000'
+    this.ctx.beginPath()
+    this.ctx.arc(
+      this.canvasResolution / 2 + x,
+      this.canvasResolution / 2 + y,
+      2 / pixelRatio,
+      0,
+      2 * Math.PI,
+    )
     this.ctx.fill()
   }
 
@@ -192,20 +204,23 @@ export class MapGenerator {
 
     if (tourPoints.length > 1) {
       tourPoints.sort((p1, p2) => p1.index - p2.index)
+      // console.log(tourPoints.length)
 
       this.ctx.lineWidth = 1
-      this.ctx.strokeStyle = '#5ff'
+      this.ctx.strokeStyle = '#55ffff'
 
       //TODO: try to draw arrows showing path direction
       this.ctx.beginPath()
       for (const {
         tilePos: { x: tourPointX, y: tourPointY },
+        // index,
       } of tourPoints) {
         const diffX = tourPointX - tilePosition.x
         const diffY = tourPointY - tilePosition.y
+        // console.log(`{diffX: ${diffX}, diffY: ${diffY}, index: ${index}},`)
         this.ctx.lineTo(
-          (diffX + 0.5) * this.canvasResolution,
-          (diffY + 0.5) * this.canvasResolution,
+          this.canvasResolution / 2 + diffX * this.canvasResolution * 2,
+          this.canvasResolution / 2 + diffY * this.canvasResolution * 2,
         )
       }
       this.ctx.stroke()

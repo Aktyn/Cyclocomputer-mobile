@@ -1,5 +1,9 @@
-// import 'react-native-gesture-handler';
 import { registerRootComponent } from 'expo'
+
+if (!__DEV__) {
+  // eslint-disable-next-line no-console
+  console.log = () => null
+}
 
 import App from './src/App'
 

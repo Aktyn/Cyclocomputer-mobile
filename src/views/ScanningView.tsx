@@ -21,7 +21,7 @@ type ListIconProps = {
 }
 
 const DeviceListIcon = (props: ListIconProps) => (
-  <List.Icon {...props} icon="devices" color={blueGrey[50]} />
+  <List.Icon {...props} icon="devices" color={props.color} />
 )
 
 export const ScanningView = () => {
@@ -92,7 +92,14 @@ export const ScanningView = () => {
                   description={`ID: ${device.id}${
                     device.paired ? ' (paired)' : ''
                   }`}
-                  left={DeviceListIcon}
+                  // eslint-disable-next-line react/no-unstable-nested-components
+                  left={(props) => (
+                    <DeviceListIcon
+                      key={device.id}
+                      {...props}
+                      color={textStyle.color ?? blueGrey[100]}
+                    />
+                  )}
                   disabled={!!connecting || connected}
                   onPress={() => {
                     if (!!connecting || connected) {

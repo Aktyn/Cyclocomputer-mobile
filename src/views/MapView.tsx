@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { Buffer } from '@craftzdog/react-native-buffer'
 import { cyan } from 'material-ui-colors'
 import { StyleProp, StyleSheet, TextStyle, View } from 'react-native'
 import Canvas from 'react-native-canvas'
@@ -19,11 +20,14 @@ import {
 import { Subheading, Text } from 'react-native-paper'
 import { useBluetooth } from '../bluetooth'
 import { IncomingMessageType, MessageType } from '../bluetooth/message'
+import { CompassWidget } from '../components/CompassWidget'
 import { useGPS } from '../gps/useGPS'
+import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useTour } from '../hooks/useTour'
 import { MapGenerator } from '../mapGenerator'
 import { useSettings } from '../settings'
 import { useSnackbar } from '../snackbar/Snackbar'
+import { clamp } from '../utils'
 
 const DEFAULT_ZOOM = 16
 
@@ -37,6 +41,28 @@ const parseImageData = (data: Uint8ClampedArray) => {
 
   const monoHLSB = new Uint8Array((pixelsCount / 8) | 0)
 
+  const roadColors = [
+    // // White
+    // { r: 255, g: 255, b: 255 },
+
+    // // Yellow
+    // { r: 0xf7, g: 0xf9, b: 0xc0 },
+
+    // // Orange
+    // { r: 0xfc, g: 0xd6, b: 0xa4 },
+
+    // Black
+    { r: 0x00, g: 0x00, b: 0x00 },
+
+    // Grey
+    // { r: 0x74, g: 0x74, b: 0x74 }, //Needs tolerance value at about 64
+  ]
+
+  const routeColors = [
+    // Cyan
+    { r: 0x55, g: 0xff, b: 0xff },
+  ]
+
   for (let y = 0; y < MapGenerator.OUTPUT_RESOLUTION; y++) {
     for (let x = 0; x < MapGenerator.OUTPUT_RESOLUTION; x++) {
       const i = y * MapGenerator.OUTPUT_RESOLUTION + x
@@ -46,19 +72,20 @@ const parseImageData = (data: Uint8ClampedArray) => {
       const b = data[i * 4 + 2]
       const tol = 16
 
-      //TODO: reformat by using list of colors and tolerance value (tol)
-      const isWhite = r > 255 - tol && g > 255 - tol && b > 255 - tol
-      const isYellow =
-        Math.abs(r - 0xf7) < tol &&
-        Math.abs(g - 0xf9) < tol &&
-        Math.abs(b - 0xc0) < tol
+      const isRoadColor = roadColors.some(
+        (color) =>
+          Math.abs(r - color.r) < tol &&
+          Math.abs(g - color.g) < tol &&
+          Math.abs(b - color.b) < tol,
+      )
+      const isRouteColor = routeColors.some(
+        (color) =>
+          Math.abs(r - color.r) < tol &&
+          Math.abs(g - color.g) < tol &&
+          Math.abs(b - color.b) < tol,
+      )
 
-      const isOrange =
-        Math.abs(r - 0xfc) < tol &&
-        Math.abs(g - 0xd6) < tol &&
-        Math.abs(b - 0xa4) < tol
-
-      const v = isWhite || isYellow || isOrange ? 0 : 1
+      const v = isRouteColor ? (y + (x % 2)) % 2 : isRoadColor ? 0 : 1
 
       //TODO: experiment with something like grey optical illusion by setting every other pixel differently
       monoHLSB[((pixelsCount - 1 - i) / 8) | 0] |= v << i % 8
@@ -69,6 +96,7 @@ const parseImageData = (data: Uint8ClampedArray) => {
 }
 
 export const MapView = memo(() => {
+  const cancellable = useCancellablePromise()
   const { openSnackbar } = useSnackbar()
   const { settings } = useSettings()
   const gps = useGPS()
@@ -134,17 +162,21 @@ export const MapView = memo(() => {
         return
       }
       lastMapPreviewSendRef.current = Date.now()
-      sendData(
-        cyclocomputer.id,
-        MessageType.SET_MAP_PREVIEW,
-        parsedData.buffer,
-      ).then((success) => {
-        if (!success) {
-          openSnackbar({ message: 'Cannot update circumference updated' })
-        }
-      })
+      cancellable(
+        sendData(
+          cyclocomputer.id,
+          MessageType.SET_MAP_PREVIEW,
+          parsedData.buffer,
+        ),
+      )
+        .then((success) => {
+          if (!success) {
+            openSnackbar({ message: 'Cannot update circumference updated' })
+          }
+        })
+        .catch(() => undefined)
     },
-    [cyclocomputer.id, openSnackbar, sendData],
+    [cancellable, cyclocomputer.id, openSnackbar, sendData],
   )
 
   useEffect(() => {
@@ -169,20 +201,22 @@ export const MapView = memo(() => {
 
     const update = () => {
       updateInfoRef.current.updating = true
-      mapGenerator
-        .update(
+      cancellable(
+        mapGenerator.update(
           gps.coordinates.latitude,
           gps.coordinates.longitude,
           -((gps.coordinates.heading ?? 0) * Math.PI) / 180,
           tour,
-        )
+        ),
+      )
         .then(sendMapPreview)
         .catch((e) => {
-          openSnackbar({
-            message: `Failed to update map: ${
-              e instanceof Error ? e.message : String(e)
-            }`,
-          })
+          e &&
+            openSnackbar({
+              message: `Failed to update map: ${
+                e instanceof Error ? e.message : String(e)
+              }`,
+            })
         })
     }
 
@@ -194,12 +228,43 @@ export const MapView = memo(() => {
       updateInfoRef.current.updating = false
     }
   }, [
+    cancellable,
     gps.coordinates.heading,
     gps.coordinates.latitude,
     gps.coordinates.longitude,
     openSnackbar,
     sendMapPreview,
     tour,
+  ])
+
+  useEffect(() => {
+    cancellable(
+      sendData(
+        cyclocomputer.id,
+        MessageType.SET_GPS_STATISTICS,
+        new Uint8Array(
+          Float32Array.from([
+            gps.coordinates.altitude,
+            gps.coordinates.slope,
+            gps.coordinates.heading,
+          ]).buffer,
+        ).buffer,
+      ),
+    )
+      .then((success) => {
+        if (!success) {
+          openSnackbar({ message: 'Cannot send gps statistics update' })
+        }
+      })
+      .catch(() => undefined)
+  }, [
+    cancellable,
+    cyclocomputer.id,
+    gps.coordinates.altitude,
+    gps.coordinates.heading,
+    gps.coordinates.slope,
+    openSnackbar,
+    sendData,
   ])
 
   const handleLeafletViewUpdate = (message: WebviewLeafletMessage) => {
@@ -215,23 +280,40 @@ export const MapView = memo(() => {
   return (
     <View style={styles.container}>
       <View style={styles.stats}>
-        <Subheading style={styles.label}>Speed:&nbsp;</Subheading>
-        <Subheading style={styles.value}>
-          {(speed || gps.coordinates.speed).toFixed(2)}km/h
-        </Subheading>
-        <Subheading style={styles.label}>Altitude:&nbsp;</Subheading>
-        <Subheading style={styles.value}>
-          {gps.coordinates.altitude.toFixed(1)}m
-        </Subheading>
-        <Subheading style={styles.label}>Slope:&nbsp;</Subheading>
-        <Subheading style={styles.value}>
-          {gps.coordinates.slope.toFixed(1)}%
-        </Subheading>
-        <Subheading style={styles.label}>Heading:&nbsp;</Subheading>
-        <Subheading style={styles.value}>
-          {/* TODO: compass widget */}
-          {gps.coordinates.heading.toFixed(1)}°
-        </Subheading>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Speed:&nbsp;</Subheading>
+          <Subheading style={styles.value}>
+            {Math.round(speed || gps.coordinates.speed)}&nbsp;km/h
+          </Subheading>
+        </View>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Altitude:&nbsp;</Subheading>
+          <Subheading style={styles.value}>
+            {clamp(gps.coordinates.altitude, -10000, 10000).toFixed(1)}m
+          </Subheading>
+        </View>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Slope:&nbsp;</Subheading>
+          <Subheading style={styles.value}>
+            {gps.coordinates.slope.toFixed(1)}%
+          </Subheading>
+        </View>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Heading:&nbsp;</Subheading>
+          <View style={styles.value}>
+            <Subheading
+              style={{
+                ...styles.value,
+                flexGrow: 0,
+                flexBasis: 'auto',
+                marginRight: 8,
+              }}
+            >
+              {gps.coordinates.heading.toFixed(1)}°
+            </Subheading>
+            <CompassWidget size={24} direction={gps.coordinates.heading} />
+          </View>
+        </View>
       </View>
       <View style={styles.map}>
         {gps.granted ? (
@@ -266,8 +348,10 @@ export const MapView = memo(() => {
 const valueStyle: StyleProp<TextStyle> = {
   flexGrow: 1,
   flexBasis: 0,
-  minWidth: '40%',
   fontWeight: 'bold',
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
 }
 
 const styles = StyleSheet.create({
@@ -278,9 +362,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stats: {
-    padding: 8,
+    paddingVertical: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-evenly',
+    alignItems: 'stretch',
+  },
+  statsChild: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 160,
+    flexDirection: 'row',
   },
   label: { ...valueStyle, textAlign: 'right', fontWeight: 'normal' },
   value: valueStyle,

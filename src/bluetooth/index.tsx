@@ -13,7 +13,7 @@ import { Buffer } from '@craftzdog/react-native-buffer'
 import { EmitterSubscription } from 'react-native'
 import BluetoothSerial from 'react-native-bluetooth-serial-next'
 import { useSnackbar } from '../snackbar/Snackbar'
-import { requestBluetoothPermission } from './common'
+import { requestBluetoothPermissions } from './common'
 import { IncomingMessageType, MessageType, STAMP } from './message'
 
 const DEVICE_DATA_READ_FREQUENCY = 1000
@@ -101,6 +101,7 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
       rawDataBuffer += rawData
 
       const bytes = Uint8Array.from(Buffer.from(rawDataBuffer, 'base64'))
+      // eslint-disable-next-line no-console
       console.log(rawData, bytes.join(', '))
       if (bytes.length < STAMP.byteLength) {
         return
@@ -220,7 +221,7 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
       })
     }
 
-    requestBluetoothPermission()
+    requestBluetoothPermissions()
       .then((permission) => {
         if (!permission) {
           openSnackbar({
@@ -341,6 +342,7 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
           Buffer.from(data as never),
         ])
 
+        // eslint-disable-next-line no-console
         console.log('Sending message:', type, 'data size:', buffer.byteLength)
 
         return device.write(buffer as never)

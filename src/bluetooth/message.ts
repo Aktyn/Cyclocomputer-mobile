@@ -7,6 +7,7 @@ export const STAMP = Buffer.from('mgdlnkczmr', 'ascii')
 export enum MessageType {
   SET_CIRCUMFERENCE = 1,
   SET_MAP_PREVIEW,
+  SET_GPS_STATISTICS,
 }
 
 export enum IncomingMessageType {

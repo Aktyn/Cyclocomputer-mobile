@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import * as DocumentPicker from 'expo-document-picker'
 import { ScrollView, StyleSheet } from 'react-native'
 import { TextInput } from 'react-native-paper'
+import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useSettings } from '../settings'
 import { float, int } from '../utils'
 
@@ -9,15 +10,18 @@ const removeNonNumericCharacters = (value: string) =>
   value.replace(/[^\d,.]/g, '')
 
 export const OptionsView = () => {
+  const cancellable = useCancellablePromise()
   const { settings, setSetting } = useSettings()
 
   const [circumferenceText, setCircumferenceText] = useState('')
   const [mapZoomText, setMapZoomText] = useState('')
 
   const selectTourFile = () => {
-    DocumentPicker.getDocumentAsync({
-      type: 'application/octet-stream',
-    })
+    cancellable(
+      DocumentPicker.getDocumentAsync({
+        type: ['application/gpx+xml', 'application/octet-stream'],
+      }),
+    )
       .then((data) => {
         if (data.type === 'cancel') {
           throw data
