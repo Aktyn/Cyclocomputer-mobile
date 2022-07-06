@@ -8,6 +8,7 @@ export enum MessageType {
   SET_CIRCUMFERENCE = 1,
   SET_MAP_PREVIEW,
   SET_GPS_STATISTICS,
+  SET_WEATHER_DATA,
 }
 
 export enum IncomingMessageType {

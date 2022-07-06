@@ -13,6 +13,7 @@ import { Buffer } from '@craftzdog/react-native-buffer'
 import { EmitterSubscription } from 'react-native'
 import BluetoothSerial from 'react-native-bluetooth-serial-next'
 import { useSnackbar } from '../snackbar/Snackbar'
+import { waitFor } from '../utils'
 import { requestBluetoothPermissions } from './common'
 import { IncomingMessageType, MessageType, STAMP } from './message'
 
@@ -69,6 +70,7 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
   const { openSnackbar } = useSnackbar()
   const dataSubscriptionsRef = useRef(new Map<number, EmitterSubscription>())
   const messageListenersRef = useRef<MessageListener[]>([])
+  const sendingDataRef = useRef(false)
 
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -331,6 +333,11 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
 
   const sendData = useCallback<BluetoothInterface['sendData']>(
     async (deviceId, type, data) => {
+      //Prevent for simultaneous data sending
+      if (sendingDataRef.current) {
+        await waitFor(() => sendingDataRef.current === false)
+      }
+      sendingDataRef.current = true
       try {
         const device = BluetoothSerial.device(deviceId)
         const rawDataLength =
@@ -345,8 +352,11 @@ export const BluetoothProvider: FC<PropsWithChildren<unknown>> = ({
         // eslint-disable-next-line no-console
         console.log('Sending message:', type, 'data size:', buffer.byteLength)
 
-        return device.write(buffer as never)
+        const result = await device.write(buffer as never)
+        sendingDataRef.current = false
+        return result
       } catch (error: unknown) {
+        sendingDataRef.current = false
         openSnackbar({
           message: `Cannot send data to device: ${
             error instanceof Error ? error.message : String(error)

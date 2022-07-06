@@ -26,16 +26,26 @@ export class MapGenerator {
   private readonly ctx: CanvasRenderingContext2D
   private readonly zoom: number
   private readonly positionIndicatorRadius = 5
+  private readonly relativeSize: number
 
   private imagesCache = new Map<string, ImageCache>()
 
   constructor(canvas: Canvas, zoom: number) {
-    this.canvasResolution = PixelRatio.roundToNearestPixel(
-      MapGenerator.OUTPUT_RESOLUTION / pixelRatio,
+    this.canvasResolution = Math.round(
+      PixelRatio.roundToNearestPixel(
+        MapGenerator.OUTPUT_RESOLUTION / pixelRatio,
+      ),
     )
     this.relativeTileResolution = PixelRatio.roundToNearestPixel(
       TILE_RESOLUTION / pixelRatio,
     )
+
+    this.relativeSize = MapGenerator.OUTPUT_RESOLUTION
+    if (this.relativeSize !== MapGenerator.OUTPUT_RESOLUTION) {
+      throw new Error(
+        `Relative size is ${this.relativeSize} but it must be ${MapGenerator.OUTPUT_RESOLUTION}`,
+      )
+    }
 
     this.canvas = canvas
     this.canvas.width = this.canvasResolution
@@ -237,17 +247,8 @@ export class MapGenerator {
       }
     }
 
-    //TEST
-    const relativeSize = PixelRatio.getPixelSizeForLayoutSize(
-      this.canvasResolution,
-    )
-    if (relativeSize !== MapGenerator.OUTPUT_RESOLUTION) {
-      throw new Error(
-        `Relative size is ${relativeSize} but it must be ${MapGenerator.OUTPUT_RESOLUTION}`,
-      )
-    }
-    return this.ctx
-      .getImageData(0, 0, relativeSize, relativeSize)
+    return await this.ctx
+      .getImageData(0, 0, this.relativeSize, this.relativeSize)
       .then((imageData) => imageData.data)
   }
 }

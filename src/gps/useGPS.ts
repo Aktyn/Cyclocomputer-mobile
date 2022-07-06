@@ -26,7 +26,8 @@ export function useGPS() {
 
         Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.Highest, //High, BestForNavigation
+            //TODO: allow user to change this within options view
+            accuracy: Location.Accuracy.Highest, //High, Highest, BestForNavigation
             // distanceInterval: 10,
             // timeInterval: 2000,
           },

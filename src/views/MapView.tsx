@@ -24,10 +24,11 @@ import { CompassWidget } from '../components/CompassWidget'
 import { useGPS } from '../gps/useGPS'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useTour } from '../hooks/useTour'
+import { useWeather } from '../hooks/useWeather'
 import { MapGenerator } from '../mapGenerator'
 import { useSettings } from '../settings'
 import { useSnackbar } from '../snackbar/Snackbar'
-import { clamp } from '../utils'
+import { clamp, removeDiacritics } from '../utils'
 
 const DEFAULT_ZOOM = 16
 
@@ -103,11 +104,16 @@ export const MapView = memo(() => {
   const { connectedDevices, sendData, messagesHandler } = useBluetooth()
   const cyclocomputer = connectedDevices[0] ?? { id: 'mock' }
   const tour = useTour()
+  const weather = useWeather(
+    gps.coordinates.latitude,
+    gps.coordinates.longitude,
+  )
 
   const canvasRef = useRef<Canvas>(null)
   const mapGeneratorRef = useRef<MapGenerator>()
   const updateInfoRef = useRef({ updating: false, pendingUpdate: false })
   const lastMapPreviewSendRef = useRef<number>(0)
+  const skipFirstMapUpdateRef = useRef(true)
 
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const [speed, setSpeed] = useState(0)
@@ -209,7 +215,13 @@ export const MapView = memo(() => {
           tour,
         ),
       )
-        .then(sendMapPreview)
+        .then((data) => {
+          if (skipFirstMapUpdateRef.current) {
+            skipFirstMapUpdateRef.current = false
+            return
+          }
+          sendMapPreview(data)
+        })
         .catch((e) => {
           e &&
             openSnackbar({
@@ -235,6 +247,41 @@ export const MapView = memo(() => {
     openSnackbar,
     sendMapPreview,
     tour,
+  ])
+
+  useEffect(() => {
+    if (!weather?.wind) {
+      return
+    }
+    const windDataArray = new Uint8Array(
+      Float32Array.from([weather.wind.deg, weather.wind.speed]).buffer,
+    )
+    const cityNameArray = Uint8Array.from(
+      removeDiacritics(weather.name ?? '-')
+        .split('')
+        .map((ch) => ch.charCodeAt(0)),
+    )
+
+    cancellable(
+      sendData(
+        cyclocomputer.id,
+        MessageType.SET_WEATHER_DATA,
+        Uint8Array.from([...windDataArray, ...cityNameArray]).buffer,
+      ),
+    )
+      .then((success) => {
+        if (!success) {
+          openSnackbar({ message: 'Cannot send weather data' })
+        }
+      })
+      .catch(() => undefined)
+  }, [
+    cancellable,
+    cyclocomputer.id,
+    openSnackbar,
+    sendData,
+    weather?.name,
+    weather?.wind,
   ])
 
   useEffect(() => {
@@ -314,6 +361,38 @@ export const MapView = memo(() => {
             <CompassWidget size={24} direction={gps.coordinates.heading} />
           </View>
         </View>
+        {weather && (
+          <>
+            <View style={styles.statsChild}>
+              <Subheading style={styles.label}>City:&nbsp;</Subheading>
+              <Subheading style={styles.value} adjustsFontSizeToFit>
+                {weather.name}
+              </Subheading>
+            </View>
+            <View style={styles.statsChild}>
+              <Subheading style={styles.label}>Wind:&nbsp;</Subheading>
+              <View style={styles.value}>
+                <Subheading
+                  style={{
+                    ...styles.value,
+                    flexGrow: 0,
+                    flexBasis: 'auto',
+                    marginRight: 8,
+                  }}
+                >
+                  {weather.wind?.speed?.toFixed(1)}m/s
+                </Subheading>
+                {weather.wind && (
+                  <CompassWidget
+                    size={24}
+                    direction={weather.wind.deg ?? 0}
+                    hideNorth
+                  />
+                )}
+              </View>
+            </View>
+          </>
+        )}
       </View>
       <View style={styles.map}>
         {gps.granted ? (

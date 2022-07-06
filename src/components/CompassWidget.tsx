@@ -7,9 +7,14 @@ import { Text } from 'react-native-paper'
 interface CompassWidgetProps {
   size: number
   direction: number
+  hideNorth?: boolean
 }
 
-export const CompassWidget = ({ size, direction }: CompassWidgetProps) => {
+export const CompassWidget = ({
+  size,
+  direction,
+  hideNorth,
+}: CompassWidgetProps) => {
   const canvasRef = useRef<Canvas>(null)
 
   useEffect(() => {
@@ -58,7 +63,7 @@ export const CompassWidget = ({ size, direction }: CompassWidgetProps) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>N</Text>
+      {!hideNorth && <Text style={styles.text}>N</Text>}
       <Canvas ref={canvasRef} />
     </View>
   )

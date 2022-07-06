@@ -1,3 +1,5 @@
+import { diacriticsMap } from './consts'
+
 export * from './math'
 
 export function clamp(value: number, min: number, max: number) {
@@ -42,4 +44,30 @@ export function tryParseJSON<FallbackType = null>(
   } catch (e) {
     return fallbackValue ?? null
   }
+}
+
+export function removeDiacritics(str: string) {
+  return str.normalize('NFC').replace(
+    // eslint-disable-next-line no-control-regex
+    /[^\u0000-\u007E]/g,
+    (char) => diacriticsMap[char as keyof typeof diacriticsMap] || char,
+  )
+}
+
+export const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+export const waitFor = async (
+  condition: () => boolean,
+  timeout = 4000,
+  checksInterval = 16,
+) => {
+  const start = Date.now()
+  do {
+    if (condition()) {
+      return
+    }
+    await wait(checksInterval)
+  } while (Date.now() - start < timeout)
+  throw new Error('timeout')
 }
