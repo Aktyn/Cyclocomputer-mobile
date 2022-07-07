@@ -1,11 +1,5 @@
-import {
-  createContext,
-  FC,
-  PropsWithChildren,
-  useCallback,
-  useContext,
-  useState,
-} from 'react'
+import type { FC, PropsWithChildren } from 'react'
+import { createContext, useCallback, useContext, useState } from 'react'
 import { cyan } from 'material-ui-colors'
 import { Snackbar } from 'react-native-paper'
 import uuid from 'react-native-uuid'

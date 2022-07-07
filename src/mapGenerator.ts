@@ -1,7 +1,9 @@
 import assert from 'assert'
 import { PixelRatio } from 'react-native'
-import Canvas, { CanvasRenderingContext2D, Image } from 'react-native-canvas'
-import { ClusteredTour } from './hooks/useTour'
+import type { CanvasRenderingContext2D } from 'react-native-canvas'
+import type Canvas from 'react-native-canvas'
+import { Image } from 'react-native-canvas'
+import type { ClusteredTour } from './core/tour'
 import { clamp, convertLatLongToTile } from './utils'
 
 const TILE_RESOLUTION = 256 //openstreetmap tile resolution
@@ -22,15 +24,15 @@ export class MapGenerator {
 
   private readonly canvasResolution: number
   private readonly relativeTileResolution: number
-  private readonly canvas: Canvas
+  public readonly zoom: number
+  public readonly canvas: Canvas
   private readonly ctx: CanvasRenderingContext2D
-  private readonly zoom: number
   private readonly positionIndicatorRadius = 5
   private readonly relativeSize: number
 
   private imagesCache = new Map<string, ImageCache>()
 
-  constructor(canvas: Canvas, zoom: number) {
+  constructor(canvas: Canvas, zoom = 16) {
     this.canvasResolution = Math.round(
       PixelRatio.roundToNearestPixel(
         MapGenerator.OUTPUT_RESOLUTION / pixelRatio,

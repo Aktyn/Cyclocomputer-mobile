@@ -1,5 +1,6 @@
 import { blueGrey, cyan } from 'material-ui-colors'
-import { ImageStyle, StyleSheet, TextStyle, View } from 'react-native'
+import type { ImageStyle, TextStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { List, Text, TouchableRipple } from 'react-native-paper'
 
 interface NavigationButtonProps {

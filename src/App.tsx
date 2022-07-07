@@ -8,22 +8,21 @@ import {
 import * as Font from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
+import type { PlatformOSType } from 'react-native'
 import {
   StyleSheet,
   SafeAreaView,
   useColorScheme,
   Platform,
   StatusBar as StatusBarProps,
-  PlatformOSType,
   LogBox,
 } from 'react-native'
 import { configureFonts, DefaultTheme, Provider } from 'react-native-paper'
-import { Fonts } from 'react-native-paper/lib/typescript/types'
-import { BluetoothProvider } from './bluetooth'
-import { SettingsProvider } from './settings'
+import type { Fonts } from 'react-native-paper/lib/typescript/types'
 import { SnackbarProvider } from './snackbar/Snackbar'
 import { darkTheme } from './themes/darkTheme'
 import { ViewRouter } from './views/ViewRouter'
+import './core/gpsTask'
 
 LogBox.ignoreAllLogs()
 
@@ -97,20 +96,18 @@ const App = () => {
   return (
     <Provider theme={theme}>
       <SnackbarProvider>
-        <BluetoothProvider>
-          <SettingsProvider>
-            <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
-              <StatusBar style="auto" />
-              <ViewRouter />
-              {/* <Headline>Headline</Headline>
-        <Title>Title</Title>
-        <Subheading>Subheading</Subheading>
-        <Text>Text</Text>
-        <Paragraph>Paragraph</Paragraph>
-        <Caption>Caption</Caption> */}
-            </SafeAreaView>
-          </SettingsProvider>
-        </BluetoothProvider>
+        <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
+          <StatusBar style="auto" />
+          <ViewRouter />
+          {/* 
+              <Headline>Headline</Headline>
+              <Title>Title</Title>
+              <Subheading>Subheading</Subheading>
+              <Text>Text</Text>
+              <Paragraph>Paragraph</Paragraph>
+              <Caption>Caption</Caption> 
+              */}
+        </SafeAreaView>
       </SnackbarProvider>
     </Provider>
   )

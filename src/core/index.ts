@@ -1,0 +1,300 @@
+import type Canvas from 'react-native-canvas'
+import { MapGenerator } from '../mapGenerator'
+import { removeDiacritics } from '../utils'
+import { Bluetooth } from './bluetooth'
+import { parseImageData } from './common'
+import type { Coordinates } from './gps'
+import { GPS } from './gps'
+import { IncomingMessageType, MessageType } from './message'
+import type { SettingsSchema } from './settings'
+import { Settings } from './settings'
+import { Tour } from './tour'
+import type { WeatherSchema } from './weather'
+import { Weather } from './weather'
+
+class Core {
+  readonly settings = new Settings()
+  readonly bluetooth = new Bluetooth()
+  readonly gps = new GPS()
+  readonly tour = new Tour()
+  readonly weather = new Weather()
+
+  private map: MapGenerator | null = null
+  private updateInfo = { updating: false, pendingUpdate: false }
+  private skipFirstMapUpdate = true
+  private lastMapPreviewSend = 0
+  private circumference = 0
+  private gpsStatisticsStore = {
+    altitude: 0,
+    heading: 0,
+    slope: 0,
+  }
+
+  private readonly onCoordinatesUpdate = this.handleCoordinatesUpdate.bind(this)
+  private readonly onSettingsChange = this.handleSettingsChange.bind(this)
+  private readonly onBluetoothMessage = this.handleBluetoothMessage.bind(this)
+  private readonly onBluetoothDeviceConnected =
+    this.handleBluetoothDeviceConnected.bind(this)
+  private readonly onWeatherUpdate = this.handleWeatherUpdate.bind(this)
+
+  constructor() {
+    this.tour.setSettings(
+      this.settings.getSettings().gpxFile,
+      this.settings.getSettings().mapZoom,
+    )
+
+    this.circumference = this.settings.getSettings().circumference
+
+    this.bluetooth.on('deviceConnected', this.onBluetoothDeviceConnected)
+    this.bluetooth.on('message', this.onBluetoothMessage)
+    this.settings.on('settingsChange', this.onSettingsChange)
+    this.gps.on('coordinatesUpdate', this.onCoordinatesUpdate)
+    this.weather.on('update', this.onWeatherUpdate)
+  }
+
+  destroy() {
+    this.stop()
+
+    this.bluetooth.off('deviceConnected', this.onBluetoothDeviceConnected)
+    this.bluetooth.off('message', this.onBluetoothMessage)
+    this.settings.off('settingsChange', this.onSettingsChange)
+    this.gps.off('coordinatesUpdate', this.onCoordinatesUpdate)
+    this.weather.off('update', this.onWeatherUpdate)
+
+    this.settings.destroy()
+    this.bluetooth.destroy()
+    this.gps.destroy()
+    this.tour.destroy()
+    this.weather.destroy()
+  }
+
+  async start(canvas: Canvas) {
+    this.updateInfo = { updating: false, pendingUpdate: false }
+    this.skipFirstMapUpdate = true
+    this.lastMapPreviewSend = 0
+
+    this.map = new MapGenerator(canvas, this.settings.getSettings().mapZoom)
+    await this.gps.startObservingLocation(
+      this.settings.getSettings().gpsAccuracy,
+    )
+  }
+
+  stop() {
+    this.map = null
+    this.gps.stopObservingLocation()
+    this.gps.off('coordinatesUpdate', this.onCoordinatesUpdate)
+  }
+
+  private sendCircumferenceUpdate() {
+    const cyclocomputer = this.getCyclocomputer()
+    if (!cyclocomputer) {
+      return
+    }
+
+    this.bluetooth
+      .sendData(
+        cyclocomputer.id,
+        MessageType.SET_CIRCUMFERENCE,
+        new Uint8Array(
+          Float32Array.from([this.settings.getSettings().circumference]).buffer,
+        ).buffer,
+      )
+      .then((success) => {
+        if (!success) {
+          // eslint-disable-next-line no-console
+          console.error('Cannot update circumference updated')
+        }
+      })
+  }
+
+  private handleBluetoothDeviceConnected() {
+    this.sendCircumferenceUpdate()
+  }
+
+  private handleWeatherUpdate(weather: WeatherSchema | null) {
+    if (!weather?.wind) {
+      return
+    }
+
+    const cyclocomputer = this.getCyclocomputer()
+    if (!cyclocomputer) {
+      return
+    }
+
+    const windDataArray = new Uint8Array(
+      Float32Array.from([weather.wind.deg, weather.wind.speed]).buffer,
+    )
+    const cityNameArray = Uint8Array.from(
+      removeDiacritics(weather.name ?? '-')
+        .split('')
+        .map((ch) => ch.charCodeAt(0)),
+    )
+
+    this.bluetooth
+      .sendData(
+        cyclocomputer.id,
+        MessageType.SET_WEATHER_DATA,
+        Uint8Array.from([...windDataArray, ...cityNameArray]).buffer,
+      )
+      .then((success) => {
+        if (!success) {
+          // eslint-disable-next-line no-console
+          console.error('Cannot send weather data')
+        }
+      })
+      .catch(() => undefined)
+  }
+
+  private sendGpsStatisticsUpdate(
+    altitude: number,
+    heading: number,
+    slope: number,
+  ) {
+    if (
+      this.gpsStatisticsStore.altitude === altitude &&
+      this.gpsStatisticsStore.heading === heading &&
+      this.gpsStatisticsStore.slope === slope
+    ) {
+      return
+    }
+
+    const cyclocomputer = this.getCyclocomputer()
+    if (!cyclocomputer) {
+      return
+    }
+
+    this.gpsStatisticsStore = {
+      altitude,
+      heading,
+      slope,
+    }
+
+    this.bluetooth
+      .sendData(
+        cyclocomputer.id,
+        MessageType.SET_GPS_STATISTICS,
+        new Uint8Array(Float32Array.from([altitude, slope, heading]).buffer)
+          .buffer,
+      )
+      .then((success) => {
+        if (!success) {
+          // eslint-disable-next-line no-console
+          console.error('Cannot send gps statistics update')
+        }
+      })
+      .catch(() => undefined)
+  }
+
+  private handleBluetoothMessage(
+    message: IncomingMessageType,
+    _data: Uint8Array,
+  ) {
+    if (message === IncomingMessageType.REQUEST_SETTINGS) {
+      this.sendCircumferenceUpdate()
+    }
+  }
+
+  private async handleSettingsChange(settings: SettingsSchema) {
+    this.tour.setSettings(settings.gpxFile, settings.mapZoom)
+
+    if (this.circumference !== settings.circumference) {
+      this.circumference = settings.circumference
+      this.sendCircumferenceUpdate()
+    }
+
+    if (this.map && settings.mapZoom !== this.map.zoom) {
+      this.map = new MapGenerator(this.map.canvas, settings.mapZoom)
+    }
+
+    if (
+      this.map &&
+      this.gps.locationObservingOptions &&
+      this.gps.locationObservingOptions.accuracy !== settings.gpsAccuracy
+    ) {
+      await this.gps.stopObservingLocation()
+      await this.gps.startObservingLocation(settings.gpsAccuracy)
+    }
+  }
+
+  private handleCoordinatesUpdate(coords: Coordinates) {
+    if (!this.map || (!coords.latitude && !coords.longitude)) {
+      return
+    }
+
+    this.weather.updateWeather(coords.latitude, coords.longitude)
+    this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
+
+    if (this.updateInfo.updating) {
+      this.updateInfo.pendingUpdate = true
+      return
+    }
+
+    this.updateMap(coords)
+    if (this.updateInfo.pendingUpdate) {
+      this.updateInfo.pendingUpdate = false
+      this.updateMap(coords)
+    } else {
+      this.updateInfo.updating = false
+    }
+  }
+
+  private updateMap(coords: Coordinates) {
+    this.updateInfo.updating = true
+    this.map
+      ?.update(
+        coords.latitude,
+        coords.longitude,
+        -((coords.heading ?? 0) * Math.PI) / 180,
+        this.tour.getTour(),
+      )
+      .then((data) => {
+        if (this.skipFirstMapUpdate) {
+          this.skipFirstMapUpdate = false
+          return
+        }
+        this.sendMapPreview(data)
+      })
+      .catch((e) =>
+        // eslint-disable-next-line no-console
+        console.error(
+          `Failed to update map: ${e instanceof Error ? e.message : String(e)}`,
+        ),
+      )
+  }
+
+  private getCyclocomputer() {
+    const connectedDevices = this.bluetooth.getConnectedDevices()
+    if (connectedDevices.length < 1) {
+      return
+    }
+    return connectedDevices[0]
+  }
+
+  private sendMapPreview(imageData: Uint8ClampedArray) {
+    const parsedData = parseImageData(imageData)
+    if (Date.now() - this.lastMapPreviewSend < 2000) {
+      return
+    }
+    this.lastMapPreviewSend = Date.now()
+
+    const cyclocomputer = this.getCyclocomputer()
+    if (!cyclocomputer) {
+      return
+    }
+    this.bluetooth
+      .sendData(
+        cyclocomputer.id,
+        MessageType.SET_MAP_PREVIEW,
+        parsedData.buffer,
+      )
+      .then((success) => {
+        if (!success) {
+          // eslint-disable-next-line no-console
+          console.error('Cannot send map data')
+        }
+      })
+      .catch(() => undefined)
+  }
+}
+
+export const core = new Core()

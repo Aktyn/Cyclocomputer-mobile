@@ -54,6 +54,7 @@ module.exports = {
   rules: {
     'no-shadow': 'off',
     'no-alert': ['off'],
+    '@typescript-eslint/consistent-type-imports': 'error',
     '@typescript-eslint/no-shadow': ['error'],
     '@typescript-eslint/no-extra-semi': ['off'],
     '@typescript-eslint/no-empty-interface': ['off'],

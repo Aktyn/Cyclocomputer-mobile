@@ -1,14 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { blueGrey, cyan, lightGreen } from 'material-ui-colors'
-import {
-  ScrollView,
-  StyleProp,
-  StyleSheet,
-  TextStyle,
-  View,
-} from 'react-native'
+import type { StyleProp, TextStyle } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { Button, Title, List } from 'react-native-paper'
-import { useBluetooth } from '../bluetooth'
+import { useBluetooth } from '../hooks/useBluetooth'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 
 type ListIconProps = {

@@ -6,27 +6,27 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { Buffer } from '@craftzdog/react-native-buffer'
 import { cyan } from 'material-ui-colors'
-import { StyleProp, StyleSheet, TextStyle, View } from 'react-native'
+import type { StyleProp, TextStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Canvas from 'react-native-canvas'
-import {
-  LeafletView,
+import type {
   LatLng,
   WebviewLeafletMessage,
-  MapShapeType,
   MapShape,
 } from 'react-native-leaflet-view'
+import { LeafletView, MapShapeType } from 'react-native-leaflet-view'
 import { Subheading, Text } from 'react-native-paper'
-import { useBluetooth } from '../bluetooth'
-import { IncomingMessageType, MessageType } from '../bluetooth/message'
 import { CompassWidget } from '../components/CompassWidget'
-import { useGPS } from '../gps/useGPS'
+import { core } from '../core'
+import { IncomingMessageType, MessageType } from '../core/message'
+import { useBluetooth } from '../hooks/useBluetooth'
 import useCancellablePromise from '../hooks/useCancellablePromise'
+import { useGPS } from '../hooks/useGPS'
+import { useSettings } from '../hooks/useSettings'
 import { useTour } from '../hooks/useTour'
 import { useWeather } from '../hooks/useWeather'
 import { MapGenerator } from '../mapGenerator'
-import { useSettings } from '../settings'
 import { useSnackbar } from '../snackbar/Snackbar'
 import { clamp, removeDiacritics } from '../utils'
 
@@ -101,13 +101,10 @@ export const MapView = memo(() => {
   const { openSnackbar } = useSnackbar()
   const { settings } = useSettings()
   const gps = useGPS()
-  const { connectedDevices, sendData, messagesHandler } = useBluetooth()
+  const { connectedDevices, sendData } = useBluetooth()
   const cyclocomputer = connectedDevices[0] ?? { id: 'mock' }
   const tour = useTour()
-  const weather = useWeather(
-    gps.coordinates.latitude,
-    gps.coordinates.longitude,
-  )
+  const weather = useWeather()
 
   const canvasRef = useRef<Canvas>(null)
   const mapGeneratorRef = useRef<MapGenerator>()
@@ -125,12 +122,12 @@ export const MapView = memo(() => {
       }
     }
 
-    messagesHandler.on(handleMessage)
+    core.bluetooth.on('message', handleMessage)
 
     return () => {
-      messagesHandler.off(handleMessage)
+      core.bluetooth.off('message', handleMessage)
     }
-  }, [messagesHandler])
+  }, [])
 
   const latLng = useMemo<LatLng>(
     () => ({
@@ -196,7 +193,10 @@ export const MapView = memo(() => {
 
   useEffect(() => {
     const mapGenerator = mapGeneratorRef.current
-    if (!mapGenerator) {
+    if (
+      !mapGenerator ||
+      (!gps.coordinates.latitude && !gps.coordinates.longitude)
+    ) {
       return
     }
 

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "entryPoint": "./src/App.tsx",
+    "entryPoint": "./src/index.js",
     "name": "Cyclocomputer",
     "slug": "Cyclocomputer",
     "owner": "Aktyn",

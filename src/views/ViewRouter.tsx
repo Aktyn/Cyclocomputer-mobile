@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import DeviceInfo from 'react-native-device-info'
-import { useBluetooth } from '../bluetooth'
+import { useBluetooth } from '../hooks/useBluetooth'
 import { MainView } from './MainView'
 import { ScanningView } from './ScanningView'
 
