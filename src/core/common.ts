@@ -47,6 +47,16 @@ export async function requestBluetoothPermissions() {
   )
 }
 
+export function requestBackgroundLocationPermissions() {
+  return requestPermission(
+    PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
+    {
+      title: 'Background location permission',
+      message: 'Permission for tracking device location in background',
+    },
+  )
+}
+
 export function parseImageData(data: Uint8ClampedArray) {
   const pixelsCount =
     MapGenerator.OUTPUT_RESOLUTION * MapGenerator.OUTPUT_RESOLUTION

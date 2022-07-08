@@ -1,4 +1,5 @@
 import EventEmitter from 'events'
+import { Buffer } from '@craftzdog/react-native-buffer'
 import type { EmitterSubscription } from 'react-native'
 import BluetoothSerial from 'react-native-bluetooth-serial-next'
 import { waitFor } from '../utils'

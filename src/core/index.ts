@@ -12,6 +12,8 @@ import { Tour } from './tour'
 import type { WeatherSchema } from './weather'
 import { Weather } from './weather'
 
+const MAP_PREVIEW_SEND_FREQUENCY = 2_000
+
 class Core {
   readonly settings = new Settings()
   readonly bluetooth = new Bluetooth()
@@ -20,8 +22,11 @@ class Core {
   readonly weather = new Weather()
 
   private map: MapGenerator | null = null
-  private updateInfo = { updating: false, pendingUpdate: false }
-  private skipFirstMapUpdate = true
+  private updateInfo = {
+    updating: false,
+    pendingUpdate: null as Coordinates | null,
+  }
+  // private skipFirstMapUpdate = true
   private lastMapPreviewSend = 0
   private circumference = 0
   private gpsStatisticsStore = {
@@ -69,20 +74,18 @@ class Core {
   }
 
   async start(canvas: Canvas) {
-    this.updateInfo = { updating: false, pendingUpdate: false }
-    this.skipFirstMapUpdate = true
-    this.lastMapPreviewSend = 0
-
-    this.map = new MapGenerator(canvas, this.settings.getSettings().mapZoom)
     await this.gps.startObservingLocation(
       this.settings.getSettings().gpsAccuracy,
     )
+    if (!this.map) {
+      this.map = new MapGenerator(canvas, this.settings.getSettings().mapZoom)
+    }
+    this.updateInfo = { updating: false, pendingUpdate: null }
   }
 
   stop() {
     this.map = null
     this.gps.stopObservingLocation()
-    this.gps.off('coordinatesUpdate', this.onCoordinatesUpdate)
   }
 
   private sendCircumferenceUpdate() {
@@ -109,6 +112,9 @@ class Core {
 
   private handleBluetoothDeviceConnected() {
     this.sendCircumferenceUpdate()
+    const coords = this.gps.getCoordinates()
+    this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
+    this.handleWeatherUpdate(this.weather.getWeather())
   }
 
   private handleWeatherUpdate(weather: WeatherSchema | null) {
@@ -216,50 +222,54 @@ class Core {
     }
   }
 
-  private handleCoordinatesUpdate(coords: Coordinates) {
+  private async handleCoordinatesUpdate(coords: Coordinates) {
     if (!this.map || (!coords.latitude && !coords.longitude)) {
       return
     }
 
-    this.weather.updateWeather(coords.latitude, coords.longitude)
+    this.weather
+      .updateWeather(coords.latitude, coords.longitude)
+      .catch(() => undefined)
     this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
 
     if (this.updateInfo.updating) {
-      this.updateInfo.pendingUpdate = true
+      this.updateInfo.pendingUpdate = coords
+      return
+    }
+    this.updateInfo.updating = true
+    await this.updateMap(coords)
+
+    while (this.updateInfo.pendingUpdate) {
+      const pendingCoords = this.updateInfo.pendingUpdate
+      this.updateInfo.pendingUpdate = null
+      await this.updateMap(pendingCoords)
+    }
+    this.updateInfo.updating = false
+  }
+
+  private async updateMap(coords: Coordinates) {
+    if (!this.map) {
       return
     }
 
-    this.updateMap(coords)
-    if (this.updateInfo.pendingUpdate) {
-      this.updateInfo.pendingUpdate = false
-      this.updateMap(coords)
-    } else {
-      this.updateInfo.updating = false
-    }
-  }
-
-  private updateMap(coords: Coordinates) {
-    this.updateInfo.updating = true
-    this.map
-      ?.update(
+    try {
+      const data = await this.map.update(
         coords.latitude,
         coords.longitude,
         -((coords.heading ?? 0) * Math.PI) / 180,
         this.tour.getTour(),
       )
-      .then((data) => {
-        if (this.skipFirstMapUpdate) {
-          this.skipFirstMapUpdate = false
-          return
-        }
-        this.sendMapPreview(data)
-      })
-      .catch((e) =>
-        // eslint-disable-next-line no-console
-        console.error(
-          `Failed to update map: ${e instanceof Error ? e.message : String(e)}`,
-        ),
+      // if (this.skipFirstMapUpdate) {
+      // this.skipFirstMapUpdate = false
+      // } else {
+      await this.sendMapPreview(data)
+      // }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to update map: ${e instanceof Error ? e.message : String(e)}`,
       )
+    }
   }
 
   private getCyclocomputer() {
@@ -270,30 +280,35 @@ class Core {
     return connectedDevices[0]
   }
 
-  private sendMapPreview(imageData: Uint8ClampedArray) {
-    const parsedData = parseImageData(imageData)
-    if (Date.now() - this.lastMapPreviewSend < 2000) {
-      return
-    }
-    this.lastMapPreviewSend = Date.now()
+  private async sendMapPreview(imageData: Uint8ClampedArray) {
+    try {
+      const parsedData = parseImageData(imageData)
+      if (Date.now() - this.lastMapPreviewSend < MAP_PREVIEW_SEND_FREQUENCY) {
+        return
+      }
+      this.lastMapPreviewSend = Date.now()
 
-    const cyclocomputer = this.getCyclocomputer()
-    if (!cyclocomputer) {
-      return
-    }
-    this.bluetooth
-      .sendData(
+      const cyclocomputer = this.getCyclocomputer()
+      if (!cyclocomputer) {
+        return
+      }
+      const success = await this.bluetooth.sendData(
         cyclocomputer.id,
         MessageType.SET_MAP_PREVIEW,
         parsedData.buffer,
       )
-      .then((success) => {
-        if (!success) {
-          // eslint-disable-next-line no-console
-          console.error('Cannot send map data')
-        }
-      })
-      .catch(() => undefined)
+      if (!success) {
+        // eslint-disable-next-line no-console
+        console.error('Cannot send map data')
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to send map preview: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      )
+    }
   }
 }
 

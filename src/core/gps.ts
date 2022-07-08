@@ -2,6 +2,7 @@ import EventEmitter from 'events'
 import * as Location from 'expo-location'
 import type { LocationObject, LocationAccuracy } from 'expo-location'
 import { distanceBetweenEarthCoordinatesInKm, pick } from '../utils'
+import { requestBackgroundLocationPermissions } from './common'
 
 export type Coordinates = {
   latitude: number
@@ -46,28 +47,14 @@ export class GPS extends GPSEventEmitter {
   constructor() {
     super()
 
-    Location.requestForegroundPermissionsAsync()
-      .then((foregroundPermission) => {
-        if (!foregroundPermission.granted) {
-          return foregroundPermission
-        }
-        return Location.getBackgroundPermissionsAsync()
-      })
-      .then((permission) => {
-        if (!permission.granted) {
-          return
-        }
-        this.granted = true
-        this.emit('toggleGranted', this.granted)
-      })
-      .catch((error) =>
-        // eslint-disable-next-line no-console
-        console.error(
-          `Error while getting location permissions: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      )
+    this.init().catch((error) =>
+      // eslint-disable-next-line no-console
+      console.error(
+        `Error while getting location permissions: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ),
+    )
   }
 
   destroy() {
@@ -80,6 +67,24 @@ export class GPS extends GPSEventEmitter {
 
   getCoordinates() {
     return this.coordinates
+  }
+
+  private async init() {
+    await requestBackgroundLocationPermissions()
+
+    const foregroundPermission =
+      await Location.requestForegroundPermissionsAsync()
+    if (!foregroundPermission.granted) {
+      return
+    }
+
+    const backgroundPermission = await Location.getBackgroundPermissionsAsync()
+    if (!backgroundPermission.granted) {
+      return
+    }
+
+    this.granted = true
+    this.emit('toggleGranted', this.granted)
   }
 
   /** Should be called only from TaskManager */
