@@ -1,9 +1,9 @@
 {
   "expo": {
-    "entryPoint": "./src/index.js",
+    "entryPoint": "./index.js",
     "name": "Cyclocomputer",
     "slug": "Cyclocomputer",
-    "owner": "Aktyn",
+    "owner": "aktyn",
     "version": "1.0.0",
     "orientation": "default",
     "userInterfaceStyle": "automatic",

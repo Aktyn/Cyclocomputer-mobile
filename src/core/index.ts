@@ -12,7 +12,7 @@ import { Tour } from './tour'
 import type { WeatherSchema } from './weather'
 import { Weather } from './weather'
 
-const MAP_PREVIEW_SEND_FREQUENCY = 2_000
+const MAP_PREVIEW_SEND_FREQUENCY = 2000
 
 class Core {
   readonly settings = new Settings()

@@ -47,7 +47,7 @@ export interface WeatherSchema {
 }
 
 /** 5 minutes */
-const UPDATES_FREQUENCY = 300_000
+const UPDATES_FREQUENCY = 300000
 const API_KEY = '56be76c13353c6935bf371100a953b3f'
 
 declare interface WeatherEventEmitter {

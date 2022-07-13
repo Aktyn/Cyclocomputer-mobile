@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Inter_100Thin,
   Inter_300Light,
@@ -6,7 +6,6 @@ import {
   Inter_500Medium,
 } from '@expo-google-fonts/inter'
 import * as Font from 'expo-font'
-import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import type { PlatformOSType } from 'react-native'
 import {
@@ -57,7 +56,6 @@ const App = () => {
   useEffect(() => {
     async function prepare() {
       try {
-        await SplashScreen.preventAutoHideAsync()
         await Font.loadAsync({
           Inter100: Inter_100Thin,
           Inter300: Inter_300Light,
@@ -83,12 +81,6 @@ const App = () => {
       : { ...DefaultTheme, fonts }
   }, [colorScheme])
 
-  const onLayoutRootView = useCallback(async () => {
-    if (appIsReady) {
-      await SplashScreen.hideAsync()
-    }
-  }, [appIsReady])
-
   if (!appIsReady) {
     return null
   }
@@ -96,17 +88,9 @@ const App = () => {
   return (
     <Provider theme={theme}>
       <SnackbarProvider>
-        <SafeAreaView style={styles.container} onLayout={onLayoutRootView}>
+        <SafeAreaView style={styles.container}>
           <StatusBar style="auto" />
           <ViewRouter />
-          {/* 
-              <Headline>Headline</Headline>
-              <Title>Title</Title>
-              <Subheading>Subheading</Subheading>
-              <Text>Text</Text>
-              <Paragraph>Paragraph</Paragraph>
-              <Caption>Caption</Caption> 
-              */}
         </SafeAreaView>
       </SnackbarProvider>
     </Provider>
