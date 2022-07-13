@@ -143,6 +143,11 @@ export class MapGenerator {
     const x = Math.floor(tilePosition.x)
     const y = Math.floor(tilePosition.y)
 
+    const centerOffset = 0.25
+    const centerOffsetX =
+      Math.sin(rotation) * centerOffset * this.canvasResolution
+    const centerOffsetY =
+      Math.cos(rotation) * centerOffset * this.canvasResolution
     const tileOffsetX = clamp(tilePosition.x - x, 0, 1)
     const tileOffsetY = clamp(tilePosition.y - y, 0, 1)
 
@@ -198,10 +203,12 @@ export class MapGenerator {
             image,
             this.canvasResolution / 2 -
               tileOffsetX * this.relativeTileResolution +
-              (imageCache.tileX - x) * this.relativeTileResolution,
+              (imageCache.tileX - x) * this.relativeTileResolution +
+              centerOffsetX,
             this.canvasResolution / 2 -
               tileOffsetY * this.relativeTileResolution +
-              (imageCache.tileY - y) * this.relativeTileResolution,
+              (imageCache.tileY - y) * this.relativeTileResolution +
+              centerOffsetY,
             this.relativeTileResolution,
             this.relativeTileResolution,
           )
@@ -221,7 +228,6 @@ export class MapGenerator {
       this.ctx.lineWidth = 1
       this.ctx.strokeStyle = '#55ffff'
 
-      //TODO: try to draw arrows showing path direction
       this.ctx.beginPath()
       for (const {
         tilePos: { x: tourPointX, y: tourPointY },
@@ -231,14 +237,18 @@ export class MapGenerator {
         const diffY = tourPointY - tilePosition.y
         // console.log(`{diffX: ${diffX}, diffY: ${diffY}, index: ${index}},`)
         this.ctx.lineTo(
-          this.canvasResolution / 2 + diffX * this.canvasResolution * 2,
-          this.canvasResolution / 2 + diffY * this.canvasResolution * 2,
+          this.canvasResolution / 2 +
+            diffX * this.canvasResolution * 2 +
+            centerOffsetX,
+          this.canvasResolution / 2 +
+            diffY * this.canvasResolution * 2 +
+            centerOffsetY,
         )
       }
       this.ctx.stroke()
     }
 
-    this.drawPointer(0, 0, this.positionIndicatorRadius)
+    this.drawPointer(centerOffsetX, centerOffsetY, this.positionIndicatorRadius)
 
     this.ctx.restore()
 
