@@ -107,8 +107,7 @@ export class GPS extends GPSEventEmitter {
           this.coordinates.longitude,
         ) * 1000
 
-      //TODO: linearly weighted average of last few slope measurements
-      slope = Math.atan2(verticalDistance, horizontalDistance)
+      slope = (Math.atan2(verticalDistance, horizontalDistance) * 180) / Math.PI
     }
 
     this.coordinates = {
