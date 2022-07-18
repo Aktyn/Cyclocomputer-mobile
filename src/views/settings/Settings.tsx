@@ -9,8 +9,8 @@ import {
   Title,
   useTheme,
 } from 'react-native-paper'
+import type { SettingsSchema } from '../../core/settings'
 import useCancellablePromise from '../../hooks/useCancellablePromise'
-import type { SetSetting, SettingsSchema } from '../../settings'
 import { float, int } from '../../utils'
 
 const accuracies = [
@@ -27,7 +27,10 @@ const removeNonNumericCharacters = (value: string) =>
 
 interface SettingsProps {
   settings: SettingsSchema
-  setSetting: SetSetting
+  setSetting: (
+    key: keyof SettingsSchema,
+    value: SettingsSchema[typeof key],
+  ) => void
 }
 
 export const Settings = ({ settings, setSetting }: SettingsProps) => {
@@ -35,6 +38,9 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   const cancellable = useCancellablePromise()
 
   const [circumferenceText, setCircumferenceText] = useState('')
+  const [gpsTimeIntervalText, setGpsTimeIntervalText] = useState('')
+  const [gpsDistanceSensitivityText, setGpsDistanceSensitivityText] =
+    useState('')
   const [mapZoomText, setMapZoomText] = useState('')
 
   const selectTourFile = () => {
@@ -56,27 +62,33 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
     setCircumferenceText(settings.circumference.toString())
   }, [settings.circumference])
   useEffect(() => {
+    setGpsTimeIntervalText(settings.gpsTimeInterval.toString())
+  }, [settings.gpsTimeInterval])
+  useEffect(() => {
+    setGpsDistanceSensitivityText(settings.gpsDistanceSensitivity.toString())
+  }, [settings.gpsDistanceSensitivity])
+  useEffect(() => {
     setMapZoomText(settings.mapZoom.toString())
   }, [settings.mapZoom])
 
-  const handleCircumferenceUpdate = useCallback(
-    (text: string) => {
-      const circumference = float(text.replace(/^0*/g, '').replace(/,/g, '.'))
-      if (!circumference) {
+  const handleFloatValueUpdate = useCallback(
+    (textValue: string, settingKey: keyof SettingsSchema) => {
+      const value = float(textValue.replace(/^0*/g, '').replace(/,/g, '.'))
+      if (!value) {
         return
       }
-      setSetting('circumference', circumference)
+      setSetting(settingKey, value)
     },
     [setSetting],
   )
 
-  const handleMapZoomUpdate = useCallback(
-    (text: string) => {
-      const mapZoom = int(text.replace(/[^\d]/g, ''))
-      if (!mapZoom) {
+  const handleIntegerValueUpdate = useCallback(
+    (text: string, settingsKey: keyof SettingsSchema) => {
+      const value = int(text.replace(/[^\d]/g, ''))
+      if (!value) {
         return
       }
-      setSetting('mapZoom', mapZoom)
+      setSetting(settingsKey, value)
     },
     [setSetting],
   )
@@ -103,7 +115,9 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
           onChangeText={(value) =>
             setCircumferenceText(removeNonNumericCharacters(value))
           }
-          onBlur={() => handleCircumferenceUpdate(circumferenceText)}
+          onBlur={() =>
+            handleFloatValueUpdate(circumferenceText, 'circumference')
+          }
         />
         <TextInput
           style={textInputStyle}
@@ -119,13 +133,13 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
           label="Map zoom"
           value={mapZoomText}
           mode="outlined"
-          left={<TextInput.Icon name="circle-edit-outline" />}
+          left={<TextInput.Icon name="map" />}
           maxLength={6}
           keyboardType="numeric"
           onChangeText={(value) =>
             setMapZoomText(removeNonNumericCharacters(value))
           }
-          onBlur={() => handleMapZoomUpdate(mapZoomText)}
+          onBlur={() => handleIntegerValueUpdate(mapZoomText, 'mapZoom')}
         />
       </View>
       <View style={styles.gpsAccuracyView}>
@@ -147,6 +161,39 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
             </Text>
           </View>
         ))}
+        <TextInput
+          style={textInputStyle}
+          label="GPS location updates interval (milliseconds)"
+          value={gpsTimeIntervalText}
+          mode="outlined"
+          left={<TextInput.Icon name="map-clock" />}
+          maxLength={9}
+          keyboardType="numeric"
+          onChangeText={(value) =>
+            setGpsTimeIntervalText(removeNonNumericCharacters(value))
+          }
+          onBlur={() =>
+            handleIntegerValueUpdate(gpsTimeIntervalText, 'gpsTimeInterval')
+          }
+        />
+        <TextInput
+          style={textInputStyle}
+          label="GPS location distance sensitivity (meters)"
+          value={gpsDistanceSensitivityText}
+          mode="outlined"
+          left={<TextInput.Icon name="map-marker-distance" />}
+          maxLength={3}
+          keyboardType="numeric"
+          onChangeText={(value) =>
+            setGpsDistanceSensitivityText(removeNonNumericCharacters(value))
+          }
+          onBlur={() =>
+            handleIntegerValueUpdate(
+              gpsDistanceSensitivityText,
+              'gpsDistanceSensitivity',
+            )
+          }
+        />
       </View>
     </ScrollView>
   )

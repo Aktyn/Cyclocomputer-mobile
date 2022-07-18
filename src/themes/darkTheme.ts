@@ -17,7 +17,7 @@ export const darkTheme: Theme = {
     error: red[400],
     onSurface: cyan[800],
     disabled: grey[400],
-    placeholder: blueGrey[200],
+    placeholder: cyan[300], //blueGrey[200],
     backdrop: blueGrey[900] + 'bb',
     notification: 'pink',
   },

@@ -74,9 +74,7 @@ class Core {
   }
 
   async start(canvas: Canvas) {
-    await this.gps.startObservingLocation(
-      this.settings.getSettings().gpsAccuracy,
-    )
+    await this.gps.startObservingLocation(this.settings.getSettings())
     if (!this.map) {
       this.map = new MapGenerator(canvas, this.settings.getSettings().mapZoom)
     }
@@ -215,10 +213,14 @@ class Core {
     if (
       this.map &&
       this.gps.locationObservingOptions &&
-      this.gps.locationObservingOptions.accuracy !== settings.gpsAccuracy
+      (this.gps.locationObservingOptions.accuracy !== settings.gpsAccuracy ||
+        this.gps.locationObservingOptions.gpsTimeInterval !==
+          settings.gpsTimeInterval ||
+        this.gps.locationObservingOptions.gpsDistanceSensitivity !==
+          settings.gpsDistanceSensitivity)
     ) {
       await this.gps.stopObservingLocation()
-      await this.gps.startObservingLocation(settings.gpsAccuracy)
+      await this.gps.startObservingLocation(settings)
     }
   }
 

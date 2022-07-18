@@ -9,6 +9,10 @@ const defaultSettings = {
   gpxFile: null as null | (DocumentResult & { type: 'success' }),
   mapZoom: 16,
   gpsAccuracy: LocationAccuracy.Highest,
+  /** Minimum time to wait between each update in milliseconds. Default value may depend on accuracy option. */
+  gpsTimeInterval: 4000,
+  /** Receive updates only when the location has changed by at least this distance in meters. Default value may depend on accuracy option. */
+  gpsDistanceSensitivity: 10,
 }
 
 export type SettingsSchema = typeof defaultSettings

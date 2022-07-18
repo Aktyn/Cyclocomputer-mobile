@@ -1,8 +1,9 @@
 import EventEmitter from 'events'
 import * as Location from 'expo-location'
-import type { LocationObject, LocationAccuracy } from 'expo-location'
+import type { LocationObject } from 'expo-location'
 import { distanceBetweenEarthCoordinatesInKm, pick } from '../utils'
 import { requestBackgroundLocationPermissions } from './common'
+import type { SettingsSchema } from './settings'
 
 export type Coordinates = {
   latitude: number
@@ -42,7 +43,11 @@ export class GPS extends GPSEventEmitter {
     slope: 0,
     speed: 0,
   }
-  locationObservingOptions: { accuracy: number } | null = null
+  locationObservingOptions: {
+    accuracy: number
+    gpsTimeInterval: number
+    gpsDistanceSensitivity: number
+  } | null = null
 
   constructor() {
     super()
@@ -116,16 +121,22 @@ export class GPS extends GPSEventEmitter {
     this.emit('coordinatesUpdate', this.coordinates)
   }
 
-  startObservingLocation(accuracy: LocationAccuracy) {
+  startObservingLocation(settings: SettingsSchema) {
+    const accuracy = settings.gpsAccuracy
+    const gpsTimeInterval = settings.gpsTimeInterval
+    const gpsDistanceSensitivity = settings.gpsDistanceSensitivity
+
     this.locationObservingOptions = {
       accuracy,
+      gpsTimeInterval,
+      gpsDistanceSensitivity,
     }
     return Location.startLocationUpdatesAsync('BACKGROUND_LOCATION_TASK', {
       accuracy,
-      //TODO: allow user to change more parameters within options view
-      // deferredUpdatesDistance: 10,
-      // deferredUpdatesInterval: 2000,
-      // pausesUpdatesAutomatically: true, //TODO: check it out
+      timeInterval: gpsTimeInterval,
+      deferredUpdatesInterval: gpsTimeInterval,
+      distanceInterval: gpsDistanceSensitivity,
+      deferredUpdatesDistance: gpsDistanceSensitivity,
 
       showsBackgroundLocationIndicator: true,
       foregroundService: {
