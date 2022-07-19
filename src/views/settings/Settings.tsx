@@ -10,7 +10,7 @@ import {
   useTheme,
 } from 'react-native-paper'
 import type { SettingsSchema } from '../../core/settings'
-import useCancellablePromise from '../../hooks/useCancellablePromise'
+import { useMounted } from '../../hooks/useMounted'
 import { float, int } from '../../utils'
 
 const accuracies = [
@@ -35,7 +35,7 @@ interface SettingsProps {
 
 export const Settings = ({ settings, setSetting }: SettingsProps) => {
   const theme = useTheme()
-  const cancellable = useCancellablePromise()
+  const mounted = useMounted()
 
   const [circumferenceText, setCircumferenceText] = useState('')
   const [gpsTimeIntervalText, setGpsTimeIntervalText] = useState('')
@@ -43,12 +43,13 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
     useState('')
   const [mapZoomText, setMapZoomText] = useState('')
 
-  const selectTourFile = () => {
-    cancellable(
-      DocumentPicker.getDocumentAsync({
-        type: ['application/gpx+xml', 'application/octet-stream'],
-      }),
-    )
+  const selectTourFile = useCallback(() => {
+    if (!mounted) {
+      return
+    }
+    DocumentPicker.getDocumentAsync({
+      type: ['application/gpx+xml', 'application/octet-stream'],
+    })
       .then((data) => {
         if (data.type === 'cancel') {
           throw data
@@ -64,7 +65,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
           }`,
         ),
       )
-  }
+  }, [mounted, setSetting])
 
   useEffect(() => {
     setCircumferenceText(settings.circumference.toString())

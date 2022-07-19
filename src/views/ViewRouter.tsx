@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AppStateStatus } from 'react-native'
 import { AppState } from 'react-native'
 import Canvas from 'react-native-canvas'
@@ -14,7 +14,7 @@ enum VIEW {
 }
 
 export const ViewRouter = () => {
-  // const canvasRef = useRef<Canvas>(null)
+  const canvasRef = useRef<Canvas>(null)
 
   const [view, setView] = useState(VIEW.SCANNING)
   const [appStateVisible, setAppStateVisible] = useState(AppState.currentState)
@@ -25,6 +25,7 @@ export const ViewRouter = () => {
     if (connectedDevices.length) {
       setView(VIEW.MAIN)
     } else {
+      core.stop()
       setView(VIEW.SCANNING)
     }
   }, [connectedDevices.length])
@@ -48,8 +49,19 @@ export const ViewRouter = () => {
     )
     return () => {
       subscription.remove()
+      core.stop()
     }
   }, [])
+
+  useEffect(() => {
+    if (!canvasRef.current) {
+      return
+    }
+    core
+      .start(canvasRef.current)
+      // eslint-disable-next-line no-console
+      .catch(console.error)
+  }, [view])
 
   const isBackgroundState = !!appStateVisible.match(/inactive|background/)
 
@@ -60,18 +72,7 @@ export const ViewRouter = () => {
       return (
         <>
           {isBackgroundState ? null : <MainView />}
-          <Canvas
-            // style={}
-            ref={(canvasRef: Canvas) => {
-              if (!canvasRef) {
-                return
-              }
-              core
-                .start(canvasRef)
-                // eslint-disable-next-line no-console
-                .catch(console.error)
-            }}
-          />
+          <Canvas ref={canvasRef} />
         </>
       )
     default:

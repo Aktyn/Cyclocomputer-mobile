@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react'
 
 export default function useCancellablePromise() {
-  const promises = useRef<{ promise: Promise<unknown>; cancel: () => void }[]>(
-    [],
-  )
+  const promises = useRef<
+    { promise: Promise<unknown>; cancel: () => void; restore: () => void }[]
+  >([])
 
   useEffect(() => {
+    promises.current?.forEach((p) => p.restore())
     return () => {
       promises.current?.forEach((p) => p.cancel())
       promises.current = []
@@ -24,8 +25,11 @@ export default function useCancellablePromise() {
 
       promises.current?.push({
         promise: wrappedPromise,
-        cancel() {
+        cancel: () => {
           isCanceled = true
+        },
+        restore: () => {
+          isCanceled = false
         },
       })
 
