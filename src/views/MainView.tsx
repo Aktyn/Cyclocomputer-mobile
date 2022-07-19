@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Buffer } from '@craftzdog/react-native-buffer'
 import { cyan } from 'material-ui-colors'
 import type { StyleProp, TextStyle } from 'react-native'
 import { StyleSheet, View } from 'react-native'
-import Canvas from 'react-native-canvas'
 import type {
   LatLng,
   MapShape,
@@ -23,7 +22,7 @@ import { SettingsDialog } from './settings/SettingsDialog'
 const DEFAULT_ZOOM = 16
 
 export const MainView = () => {
-  const canvasRef = useRef<Canvas>(null)
+  // const canvasRef = useRef<Canvas>(null)
 
   const gps = useGPS()
   const tour = useTour()
@@ -34,9 +33,9 @@ export const MainView = () => {
   const [openSettings, setOpenSettings] = useState(false)
 
   useEffect(() => {
-    if (!canvasRef.current) {
-      return
-    }
+    // if (!canvasRef.current) {
+    //   return
+    // }
 
     const handleMessage = (message: IncomingMessageType, data: Uint8Array) => {
       if (message === IncomingMessageType.UPDATE_SPEED) {
@@ -46,11 +45,10 @@ export const MainView = () => {
 
     core.bluetooth.on('message', handleMessage)
 
-    // eslint-disable-next-line no-console
-    core.start(canvasRef.current).catch(console.error)
+    // core.start(canvasRef.current).catch(console.error)
 
     return () => {
-      core.stop()
+      // core.stop()
       core.bluetooth.off('message', handleMessage)
     }
   }, [])
@@ -190,9 +188,9 @@ export const MainView = () => {
           <Text>GPS is not granted</Text>
         )}
       </View>
-      <View style={styles.ePaperMapPreviewContainer}>
-        <Canvas ref={canvasRef} />
-      </View>
+      {/* <View style={styles.ePaperMapPreviewContainer}> */}
+      {/* <Canvas ref={canvasRef} /> */}
+      {/* </View> */}
       <FAB
         style={styles.fab}
         icon="cog"

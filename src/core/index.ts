@@ -26,7 +26,6 @@ class Core {
     updating: false,
     pendingUpdate: null as Coordinates | null,
   }
-  // private skipFirstMapUpdate = true
   private lastMapPreviewSend = 0
   private circumference = 0
   private gpsStatisticsStore = {
@@ -74,6 +73,13 @@ class Core {
   }
 
   async start(canvas: Canvas) {
+    if (this.map) {
+      this.stop()
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('Starting core')
+
     await this.gps.startObservingLocation(this.settings.getSettings())
     if (!this.map) {
       this.map = new MapGenerator(canvas, this.settings.getSettings().mapZoom)
@@ -82,6 +88,8 @@ class Core {
   }
 
   stop() {
+    // eslint-disable-next-line no-console
+    console.log('Stopping core')
     this.map = null
     this.gps.stopObservingLocation()
   }
@@ -261,11 +269,7 @@ class Core {
         -((coords.heading ?? 0) * Math.PI) / 180,
         this.tour.getTour(),
       )
-      // if (this.skipFirstMapUpdate) {
-      // this.skipFirstMapUpdate = false
-      // } else {
       await this.sendMapPreview(data)
-      // }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(

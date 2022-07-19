@@ -69,7 +69,7 @@ export const ScanningView = () => {
               const textStyle: StyleProp<TextStyle> = {
                 color: connected
                   ? lightGreen[300]
-                  : device.id === '6B:14:9B:03:03:99'
+                  : device.id === '2B:0A:DA:99:6C:F7'
                   ? cyan[100]
                   : blueGrey[100],
               }

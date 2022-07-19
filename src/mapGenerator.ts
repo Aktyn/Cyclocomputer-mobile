@@ -30,7 +30,7 @@ export class MapGenerator {
   private readonly positionIndicatorRadius = 5
   private readonly relativeSize: number
 
-  private imagesCache = new Map<string, ImageCache>()
+  private static imagesCache = new Map<string, ImageCache>()
 
   constructor(canvas: Canvas, zoom = 16) {
     this.canvasResolution = Math.round(
@@ -61,7 +61,7 @@ export class MapGenerator {
 
   private fetchTile(x: number, y: number) {
     const key = `${x}-${y}`
-    let imageCache = this.imagesCache.get(key) ?? null
+    let imageCache = MapGenerator.imagesCache.get(key) ?? null
     if (imageCache) {
       if (imageCache.loaded) {
         return Promise.resolve(imageCache)
@@ -83,7 +83,7 @@ export class MapGenerator {
       tileY: y,
       loadListeners: [],
     }
-    this.imagesCache.set(key, imageCache)
+    MapGenerator.imagesCache.set(key, imageCache)
 
     return new Promise<ImageCache>((resolve) => {
       assert(imageCache)
@@ -183,7 +183,7 @@ export class MapGenerator {
           yy < -tilesGridRadius ||
           yy > tilesGridRadius
         ) {
-          if (!this.imagesCache.has(key)) {
+          if (!MapGenerator.imagesCache.has(key)) {
             await this.fetchTile(x + xx, y + yy)
           }
           continue
@@ -253,9 +253,9 @@ export class MapGenerator {
     this.ctx.restore()
 
     //Cleanup
-    for (const key of this.imagesCache.keys()) {
+    for (const key of MapGenerator.imagesCache.keys()) {
       if (!relevantKeys.has(key)) {
-        this.imagesCache.delete(key)
+        MapGenerator.imagesCache.delete(key)
       }
     }
 

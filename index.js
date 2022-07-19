@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 if (!__DEV__) {
   console.log = () => null
+  console.warn = () => null
+  console.info = () => null
   console.error = () => null
 }
 

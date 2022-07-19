@@ -55,7 +55,15 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
         }
         setSetting('gpxFile', data)
       })
-      .catch(() => undefined)
+
+      .catch((error) =>
+        // eslint-disable-next-line no-console
+        console.error(
+          `Cannot load gpx file. Error: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      )
   }
 
   useEffect(() => {
