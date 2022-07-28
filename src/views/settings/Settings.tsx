@@ -86,7 +86,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   const handleFloatValueUpdate = useCallback(
     (textValue: string, settingKey: keyof SettingsSchema) => {
       const value = float(textValue.replace(/^0*/g, '').replace(/,/g, '.'))
-      if (!value) {
+      if (isNaN(value)) {
         return
       }
       setSetting(settingKey, value)
@@ -97,7 +97,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   const handleIntegerValueUpdate = useCallback(
     (text: string, settingsKey: keyof SettingsSchema) => {
       const value = int(text.replace(/[^\d]/g, ''))
-      if (!value) {
+      if (isNaN(value)) {
         return
       }
       setSetting(settingsKey, value)

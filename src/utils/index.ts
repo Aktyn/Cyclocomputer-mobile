@@ -212,9 +212,7 @@ export function parseTime(
       const unitValue = Math.floor(milliseconds / unit.scale)
       if (unitValue > 0) {
         milliseconds -= unitValue * unit.scale
-        unitStringsBuilder.push(
-          `${unitValue} ${unitValue === 1 ? unit.name : unit.name}`,
-        )
+        unitStringsBuilder.push(`${unitValue} ${unit.name}`)
       }
     }
 

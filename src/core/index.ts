@@ -35,6 +35,7 @@ class Core {
     heading: 0,
     slope: 0,
   }
+  private lastProgressDataSendTimestamp = 0
 
   private readonly onCoordinatesUpdate = this.handleCoordinatesUpdate.bind(this)
   private readonly onSettingsChange = this.handleSettingsChange.bind(this)
@@ -42,6 +43,7 @@ class Core {
   private readonly onBluetoothDeviceConnected =
     this.handleBluetoothDeviceConnected.bind(this)
   private readonly onWeatherUpdate = this.handleWeatherUpdate.bind(this)
+  private readonly onProgressUpdate = this.handleProgressUpdate.bind(this)
 
   constructor() {
     this.tour.setSettings(
@@ -56,6 +58,7 @@ class Core {
     this.settings.on('settingsChange', this.onSettingsChange)
     this.gps.on('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.on('update', this.onWeatherUpdate)
+    this.progress.on('update', this.onProgressUpdate)
   }
 
   destroy() {
@@ -66,6 +69,7 @@ class Core {
     this.settings.off('settingsChange', this.onSettingsChange)
     this.gps.off('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.off('update', this.onWeatherUpdate)
+    this.progress.off('update', this.onProgressUpdate)
 
     this.settings.destroy()
     this.bluetooth.destroy()
@@ -147,6 +151,8 @@ class Core {
           console.error('Cannot send progress data')
         }
       })
+
+    this.lastProgressDataSendTimestamp = Date.now()
   }
 
   private handleBluetoothDeviceConnected() {
@@ -188,6 +194,13 @@ class Core {
         }
       })
       .catch(() => undefined)
+  }
+
+  private handleProgressUpdate() {
+    // Make sure to send progress update at least once per two minutes
+    if (Date.now() - this.lastProgressDataSendTimestamp > 1000 * 60 * 2) {
+      this.sendProgressData()
+    }
   }
 
   private sendGpsStatisticsUpdate(
