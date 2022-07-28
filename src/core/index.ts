@@ -43,7 +43,7 @@ class Core {
   private readonly onBluetoothDeviceConnected =
     this.handleBluetoothDeviceConnected.bind(this)
   private readonly onWeatherUpdate = this.handleWeatherUpdate.bind(this)
-  private readonly onProgressUpdate = this.handleProgressUpdate.bind(this)
+  // private readonly onProgressUpdate = this.handleProgressUpdate.bind(this)
 
   constructor() {
     this.tour.setSettings(
@@ -58,7 +58,7 @@ class Core {
     this.settings.on('settingsChange', this.onSettingsChange)
     this.gps.on('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.on('update', this.onWeatherUpdate)
-    this.progress.on('update', this.onProgressUpdate)
+    // this.progress.on('update', this.onProgressUpdate)
   }
 
   destroy() {
@@ -69,7 +69,7 @@ class Core {
     this.settings.off('settingsChange', this.onSettingsChange)
     this.gps.off('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.off('update', this.onWeatherUpdate)
-    this.progress.off('update', this.onProgressUpdate)
+    // this.progress.off('update', this.onProgressUpdate)
 
     this.settings.destroy()
     this.bluetooth.destroy()
@@ -123,7 +123,7 @@ class Core {
       })
   }
 
-  private sendProgressData() {
+  private async sendProgressData() {
     const cyclocomputer = this.getCyclocomputer()
     if (!cyclocomputer) {
       return
@@ -131,26 +131,24 @@ class Core {
 
     const progressData = this.progress.dataBase
 
-    this.bluetooth
-      .sendData(
-        cyclocomputer.id,
-        MessageType.SET_PROGRESS_DATA,
-        new Uint8Array(
-          Float32Array.from([
-            progressData.rideDuration,
-            progressData.timeInMotion,
-            progressData.traveledDistance,
-            progressData.altitudeChange.up,
-            progressData.altitudeChange.down,
-          ]).buffer,
-        ).buffer,
-      )
-      .then((success) => {
-        if (!success) {
-          // eslint-disable-next-line no-console
-          console.error('Cannot send progress data')
-        }
-      })
+    const success = await this.bluetooth.sendData(
+      cyclocomputer.id,
+      MessageType.SET_PROGRESS_DATA,
+      new Uint8Array(
+        Float32Array.from([
+          progressData.rideDuration,
+          progressData.timeInMotion,
+          progressData.traveledDistance,
+          progressData.altitudeChange.up,
+          progressData.altitudeChange.down,
+        ]).buffer,
+      ).buffer,
+    )
+
+    if (!success) {
+      // eslint-disable-next-line no-console
+      console.error('Cannot send progress data')
+    }
 
     this.lastProgressDataSendTimestamp = Date.now()
   }
@@ -194,13 +192,6 @@ class Core {
         }
       })
       .catch(() => undefined)
-  }
-
-  private handleProgressUpdate() {
-    // Make sure to send progress update at least once per two minutes
-    if (Date.now() - this.lastProgressDataSendTimestamp > 1000 * 60 * 2) {
-      this.sendProgressData()
-    }
   }
 
   private sendGpsStatisticsUpdate(
@@ -287,6 +278,9 @@ class Core {
 
     this.weather.updateWeather(coords).catch(() => undefined)
     this.progress.updateProgress(coords).catch(() => undefined)
+    if (Date.now() - this.lastProgressDataSendTimestamp > 1000 * 60 * 2) {
+      this.sendProgressData()
+    }
     this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
 
     if (this.updateInfo.updating) {

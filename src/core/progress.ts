@@ -5,7 +5,6 @@ import {
   distanceBetweenEarthCoordinatesInKm,
   last,
   tryParseJSON,
-  waitFor,
 } from '../utils'
 import type { Coordinates } from './gps'
 
@@ -114,7 +113,10 @@ export class Progress extends ProgressEventEmitter {
 
   /** Should be called only from Core */
   async updateProgress(coords: Coordinates) {
-    await waitFor(() => this.loaded)
+    // await waitFor(() => this.loaded)
+    if (!this.loaded) {
+      return
+    }
 
     const lastCoords = last(this.data.gpsHistory)
     if (lastCoords) {
