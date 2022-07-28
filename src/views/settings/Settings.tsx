@@ -3,12 +3,15 @@ import * as DocumentPicker from 'expo-document-picker'
 import { LocationAccuracy } from 'expo-location'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import {
+  Button,
+  Divider,
   RadioButton,
   Text,
   TextInput,
   Title,
   useTheme,
 } from 'react-native-paper'
+import { core } from '../../core'
 import type { SettingsSchema } from '../../core/settings'
 import { useMounted } from '../../hooks/useMounted'
 import { float, int } from '../../utils'
@@ -151,6 +154,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
           onBlur={() => handleIntegerValueUpdate(mapZoomText, 'mapZoom')}
         />
       </View>
+      <Divider style={styles.divider} />
       <View style={styles.gpsAccuracyView}>
         <Title>GPS accuracy</Title>
         {accuracies.map((accuracy) => (
@@ -170,6 +174,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
             </Text>
           </View>
         ))}
+        <Divider style={styles.divider} />
         <TextInput
           style={textInputStyle}
           label="GPS location updates interval (milliseconds)"
@@ -203,6 +208,15 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
             )
           }
         />
+        <Divider style={styles.divider} />
+        <Button
+          dark
+          mode="contained"
+          icon="delete"
+          onPress={() => core.progress.reset()}
+        >
+          Reset ride progress
+        </Button>
       </View>
     </ScrollView>
   )
@@ -213,6 +227,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
   },
+  divider: {
+    marginVertical: 8,
+  },
   scrollView: {
     width: '100%',
     flex: 1,
@@ -221,13 +238,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   gpsAccuracyView: {
-    marginTop: 24,
     display: 'flex',
   },
   gpsAccuracyRadioRow: {
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
   },
 })

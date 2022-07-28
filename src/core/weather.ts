@@ -1,4 +1,6 @@
 import EventEmitter from 'events'
+import { pick } from '../utils'
+import type { Coordinates } from './gps'
 
 export interface WeatherSchema {
   coord: {
@@ -79,23 +81,21 @@ export class Weather extends WeatherEventEmitter {
   }
 
   /** Should be called only from Core */
-  async updateWeather(latitude: number, longitude: number) {
+  async updateWeather(coords: Coordinates) {
     if (
       Date.now() - this.updateTimestamp < UPDATES_FREQUENCY ||
-      (latitude === this.currentWeatherCoordinates.latitude &&
-        longitude === this.currentWeatherCoordinates.longitude)
+      (coords.latitude === this.currentWeatherCoordinates.latitude &&
+        coords.longitude === this.currentWeatherCoordinates.longitude)
     ) {
       return
     }
 
     this.updateTimestamp = Date.now()
-    this.currentWeatherCoordinates = {
-      latitude,
-      longitude,
-    }
+    this.currentWeatherCoordinates = pick(coords, 'latitude', 'longitude')
+
     try {
       const weather = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`,
+        `https://api.openweathermap.org/data/2.5/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=${API_KEY}&units=metric`,
         { method: 'GET' },
       ).then((res) => res.json())
 

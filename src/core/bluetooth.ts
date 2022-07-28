@@ -2,7 +2,7 @@ import EventEmitter from 'events'
 import { Buffer } from '@craftzdog/react-native-buffer'
 import type { EmitterSubscription } from 'react-native'
 import BluetoothSerial from 'react-native-bluetooth-serial-next'
-import { waitFor } from '../utils'
+import { wait, waitFor } from '../utils'
 import { requestBluetoothPermissions } from './common'
 import type { IncomingMessageType, MessageType } from './message'
 import { STAMP } from './message'
@@ -354,6 +354,7 @@ export class Bluetooth extends BluetoothEventEmitter {
       console.log('Sending message:', type, 'data size:', buffer.byteLength)
 
       const result = await device.write(buffer as never)
+      await wait(100) // 100 ms delay after each message is sent
       this.isDataSendingBusy = false
       return result
     } catch (error: unknown) {

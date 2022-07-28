@@ -14,29 +14,25 @@ import { CompassWidget } from '../components/CompassWidget'
 import { core } from '../core'
 import { IncomingMessageType } from '../core/message'
 import { useGPS } from '../hooks/useGPS'
+import { useProgress } from '../hooks/useProgress'
 import { useTour } from '../hooks/useTour'
 import { useWeather } from '../hooks/useWeather'
-import { clamp } from '../utils'
+import { clamp, parseTime } from '../utils'
 import { SettingsDialog } from './settings/SettingsDialog'
 
 const DEFAULT_ZOOM = 16
 
 export const MainView = () => {
-  // const canvasRef = useRef<Canvas>(null)
-
   const gps = useGPS()
   const tour = useTour()
   const weather = useWeather()
+  const progress = useProgress()
 
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const [speed, setSpeed] = useState(0)
   const [openSettings, setOpenSettings] = useState(false)
 
   useEffect(() => {
-    // if (!canvasRef.current) {
-    //   return
-    // }
-
     const handleMessage = (message: IncomingMessageType, data: Uint8Array) => {
       if (message === IncomingMessageType.UPDATE_SPEED) {
         setSpeed(Buffer.from(data).readFloatLE(0))
@@ -45,10 +41,7 @@ export const MainView = () => {
 
     core.bluetooth.on('message', handleMessage)
 
-    // core.start(canvasRef.current).catch(console.error)
-
     return () => {
-      // core.stop()
       core.bluetooth.off('message', handleMessage)
     }
   }, [])
@@ -98,10 +91,47 @@ export const MainView = () => {
   return (
     <View style={styles.container}>
       <View style={styles.stats}>
+        {weather && (
+          <>
+            <View style={styles.statsChild}>
+              <Subheading style={styles.label}>City:&nbsp;</Subheading>
+              <Subheading
+                style={styles.value}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+              >
+                {weather.name}
+              </Subheading>
+            </View>
+            <View style={styles.statsChild}>
+              <Subheading style={styles.label}>Wind:&nbsp;</Subheading>
+              <View style={styles.value}>
+                <Subheading
+                  style={{
+                    ...styles.value,
+                    flexGrow: 0,
+                    flexBasis: 'auto',
+                    marginRight: 8,
+                  }}
+                >
+                  {weather.wind?.speed?.toFixed(1)}m/s
+                </Subheading>
+                {weather.wind && (
+                  <CompassWidget
+                    size={24}
+                    direction={weather.wind.deg ?? 0}
+                    hideNorth
+                  />
+                )}
+              </View>
+            </View>
+          </>
+        )}
         <View style={styles.statsChild}>
           <Subheading style={styles.label}>Speed:&nbsp;</Subheading>
           <Subheading style={styles.value}>
-            {Math.round(speed || gps.coordinates.speed)}&nbsp;km/h
+            {Math.round(speed || (gps.coordinates.speed * 3600) / 1000)}
+            &nbsp;km/h
           </Subheading>
         </View>
         <View style={styles.statsChild}>
@@ -132,38 +162,37 @@ export const MainView = () => {
             <CompassWidget size={24} direction={gps.coordinates.heading} />
           </View>
         </View>
-        {weather && (
-          <>
-            <View style={styles.statsChild}>
-              <Subheading style={styles.label}>City:&nbsp;</Subheading>
-              <Subheading style={styles.value} adjustsFontSizeToFit>
-                {weather.name}
-              </Subheading>
-            </View>
-            <View style={styles.statsChild}>
-              <Subheading style={styles.label}>Wind:&nbsp;</Subheading>
-              <View style={styles.value}>
-                <Subheading
-                  style={{
-                    ...styles.value,
-                    flexGrow: 0,
-                    flexBasis: 'auto',
-                    marginRight: 8,
-                  }}
-                >
-                  {weather.wind?.speed?.toFixed(1)}m/s
-                </Subheading>
-                {weather.wind && (
-                  <CompassWidget
-                    size={24}
-                    direction={weather.wind.deg ?? 0}
-                    hideNorth
-                  />
-                )}
-              </View>
-            </View>
-          </>
-        )}
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Traveled:&nbsp;</Subheading>
+          <Subheading style={styles.value}>
+            {progress.traveledDistance.toFixed(1)}km
+          </Subheading>
+        </View>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Ride time:&nbsp;</Subheading>
+          <Subheading style={styles.value}>
+            {parseTime(progress.rideDuration, 'm')}
+          </Subheading>
+        </View>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label}>Altitude:&nbsp;{'\n'}</Subheading>
+          <View style={styles.valueBase}>
+            <Subheading style={styles.value}>
+              {progress.altitudeChange.up.toFixed(0)}m↗
+            </Subheading>
+            <Subheading style={styles.value}>
+              {progress.altitudeChange.down.toFixed(0)}m↘
+            </Subheading>
+          </View>
+        </View>
+        <View style={styles.statsChild}>
+          <Subheading style={styles.label} numberOfLines={1}>
+            Motion time:&nbsp;
+          </Subheading>
+          <Subheading style={styles.value}>
+            {parseTime(progress.timeInMotion, 'm')}
+          </Subheading>
+        </View>
       </View>
       <View style={styles.map}>
         {gps.granted ? (
@@ -188,9 +217,6 @@ export const MainView = () => {
           <Text>GPS is not granted</Text>
         )}
       </View>
-      {/* <View style={styles.ePaperMapPreviewContainer}> */}
-      {/* <Canvas ref={canvasRef} /> */}
-      {/* </View> */}
       <FAB
         style={styles.fab}
         icon="cog"
@@ -204,12 +230,16 @@ export const MainView = () => {
   )
 }
 
-const valueStyle: StyleProp<TextStyle> = {
+const valueBaseStyle: StyleProp<TextStyle> = {
   flexGrow: 1,
   flexBasis: 0,
+}
+
+const valueStyle: StyleProp<TextStyle> = {
+  ...valueBaseStyle,
   fontWeight: 'bold',
   flexDirection: 'row',
-  alignItems: 'center',
+  alignItems: 'flex-start',
   justifyContent: 'flex-start',
 }
 
@@ -234,7 +264,13 @@ const styles = StyleSheet.create({
     minWidth: 160,
     flexDirection: 'row',
   },
-  label: { ...valueStyle, textAlign: 'right', fontWeight: 'normal' },
+  label: {
+    ...valueStyle,
+    textAlign: 'right',
+    fontWeight: 'normal',
+    fontSize: 14,
+  },
+  valueBase: valueBaseStyle,
   value: valueStyle,
   fab: {
     backgroundColor: cyan[500],
@@ -245,13 +281,6 @@ const styles = StyleSheet.create({
   map: {
     flexGrow: 1,
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ePaperMapPreviewContainer: {
-    paddingVertical: 8,
-    width: '100%',
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },

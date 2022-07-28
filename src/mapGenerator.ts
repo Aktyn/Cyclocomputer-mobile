@@ -199,19 +199,24 @@ export class MapGenerator {
           image.width === TILE_RESOLUTION &&
           image.height === TILE_RESOLUTION
         ) {
-          this.ctx.drawImage(
-            image,
-            this.canvasResolution / 2 -
-              tileOffsetX * this.relativeTileResolution +
-              (imageCache.tileX - x) * this.relativeTileResolution +
-              centerOffsetX,
-            this.canvasResolution / 2 -
-              tileOffsetY * this.relativeTileResolution +
-              (imageCache.tileY - y) * this.relativeTileResolution +
-              centerOffsetY,
-            this.relativeTileResolution,
-            this.relativeTileResolution,
-          )
+          try {
+            this.ctx.drawImage(
+              image,
+              this.canvasResolution / 2 -
+                tileOffsetX * this.relativeTileResolution +
+                (imageCache.tileX - x) * this.relativeTileResolution +
+                centerOffsetX,
+              this.canvasResolution / 2 -
+                tileOffsetY * this.relativeTileResolution +
+                (imageCache.tileY - y) * this.relativeTileResolution +
+                centerOffsetY,
+              this.relativeTileResolution,
+              this.relativeTileResolution,
+            )
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error(e)
+          }
         }
 
         //Extract points from tour cluster

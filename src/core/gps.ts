@@ -6,10 +6,14 @@ import { requestBackgroundLocationPermissions } from './common'
 import type { SettingsSchema } from './settings'
 
 export type Coordinates = {
+  timestamp: number
   latitude: number
   longitude: number
+  /** The altitude in meters above the WGS 84 reference ellipsoid */
   altitude: number
+  /** Horizontal direction of travel of this device, measured in degrees starting at due north and continuing clockwise around the compass. Thus, north is 0 degrees, east is 90 degrees, south is 180 degrees, and so on. */
   heading: number
+  /** Meters per second */
   speed: number
   slope: number
 }
@@ -36,6 +40,7 @@ class GPSEventEmitter extends EventEmitter {}
 export class GPS extends GPSEventEmitter {
   private granted = false
   private coordinates: Coordinates = {
+    timestamp: 0,
     latitude: 0,
     longitude: 0,
     heading: 0,
@@ -111,6 +116,7 @@ export class GPS extends GPSEventEmitter {
     }
 
     this.coordinates = {
+      timestamp: location.timestamp,
       slope,
       heading: location.coords.heading ?? 0,
       altitude: location.coords.altitude ?? 0,

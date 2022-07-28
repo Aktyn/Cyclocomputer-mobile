@@ -6,6 +6,7 @@ import { parseImageData } from './common'
 import type { Coordinates } from './gps'
 import { GPS } from './gps'
 import { IncomingMessageType, MessageType } from './message'
+import { Progress } from './progress'
 import type { SettingsSchema } from './settings'
 import { Settings } from './settings'
 import { Tour } from './tour'
@@ -20,6 +21,7 @@ class Core {
   readonly gps = new GPS()
   readonly tour = new Tour()
   readonly weather = new Weather()
+  readonly progress = new Progress()
 
   private map: MapGenerator | null = null
   private updateInfo = {
@@ -70,6 +72,7 @@ class Core {
     this.gps.destroy()
     this.tour.destroy()
     this.weather.destroy()
+    this.progress.destroy()
   }
 
   async start(canvas: Canvas) {
@@ -111,7 +114,37 @@ class Core {
       .then((success) => {
         if (!success) {
           // eslint-disable-next-line no-console
-          console.error('Cannot update circumference updated')
+          console.error('Cannot send circumference update')
+        }
+      })
+  }
+
+  private sendProgressData() {
+    const cyclocomputer = this.getCyclocomputer()
+    if (!cyclocomputer) {
+      return
+    }
+
+    const progressData = this.progress.dataBase
+
+    this.bluetooth
+      .sendData(
+        cyclocomputer.id,
+        MessageType.SET_PROGRESS_DATA,
+        new Uint8Array(
+          Float32Array.from([
+            progressData.rideDuration,
+            progressData.timeInMotion,
+            progressData.traveledDistance,
+            progressData.altitudeChange.up,
+            progressData.altitudeChange.down,
+          ]).buffer,
+        ).buffer,
+      )
+      .then((success) => {
+        if (!success) {
+          // eslint-disable-next-line no-console
+          console.error('Cannot send progress data')
         }
       })
   }
@@ -203,6 +236,8 @@ class Core {
   ) {
     if (message === IncomingMessageType.REQUEST_SETTINGS) {
       this.sendCircumferenceUpdate()
+    } else if (message === IncomingMessageType.REQUEST_PROGRESS_DATA) {
+      this.sendProgressData()
     }
   }
 
@@ -237,9 +272,8 @@ class Core {
       return
     }
 
-    this.weather
-      .updateWeather(coords.latitude, coords.longitude)
-      .catch(() => undefined)
+    this.weather.updateWeather(coords).catch(() => undefined)
+    this.progress.updateProgress(coords).catch(() => undefined)
     this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
 
     if (this.updateInfo.updating) {

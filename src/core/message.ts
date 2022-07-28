@@ -9,9 +9,11 @@ export enum MessageType {
   SET_MAP_PREVIEW,
   SET_GPS_STATISTICS,
   SET_WEATHER_DATA,
+  SET_PROGRESS_DATA,
 }
 
 export enum IncomingMessageType {
   REQUEST_SETTINGS = 1,
-  UPDATE_SPEED = 2,
+  UPDATE_SPEED,
+  REQUEST_PROGRESS_DATA,
 }

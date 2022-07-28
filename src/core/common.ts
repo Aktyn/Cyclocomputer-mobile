@@ -1,6 +1,10 @@
+import { Buffer } from '@craftzdog/react-native-buffer'
 import type { Permission, Rationale } from 'react-native'
 import { PermissionsAndroid } from 'react-native'
 import { MapGenerator } from '../mapGenerator'
+
+const imageDataPrefix = Buffer.from('<MAP_PREVIEW>', 'ascii')
+const imageDataSuffix = Buffer.from('</MAP_PREVIEW>', 'ascii')
 
 async function requestPermission(
   permission: Permission,
@@ -65,7 +69,12 @@ export function parseImageData(data: Uint8ClampedArray) {
     throw new Error('pixelsCount must be divisible by 8')
   }
 
-  const monoHLSB = new Uint8Array((pixelsCount / 8) | 0)
+  const monoHLSB = new Uint8Array(
+    ((pixelsCount / 8) | 0) +
+      imageDataPrefix.byteLength +
+      imageDataSuffix.byteLength,
+  )
+  monoHLSB.set(imageDataPrefix, 0)
 
   const roadColors = [
     // // White
@@ -113,9 +122,13 @@ export function parseImageData(data: Uint8ClampedArray) {
 
       const v = isRouteColor ? (y + (x % 2)) % 2 : isRoadColor ? 0 : 1
 
-      monoHLSB[((pixelsCount - 1 - i) / 8) | 0] |= v << i % 8
+      monoHLSB[
+        (((pixelsCount - 1 - i) / 8) | 0) + imageDataPrefix.byteLength
+      ] |= v << i % 8
     }
   }
+
+  monoHLSB.set(imageDataSuffix, monoHLSB.length - imageDataSuffix.byteLength)
 
   return monoHLSB
 }
