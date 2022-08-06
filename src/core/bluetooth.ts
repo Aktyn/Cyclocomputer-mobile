@@ -185,7 +185,20 @@ export class Bluetooth extends BluetoothEventEmitter {
     )
   }
 
-  destroy() {
+  async destroy() {
+    // for (const deviceInfo of this.connectedDevices) {
+    //   // eslint-disable-next-line no-console
+    //   console.log(
+    //     'Disconnecting from device',
+    //     deviceInfo.name,
+    //     'id:',
+    //     deviceInfo.id,
+    //   )
+    //   const device = BluetoothSerial.device(deviceInfo.id)
+    //   await device.disconnect()
+    //   // eslint-disable-next-line no-console
+    //   console.log('\tdisconnected')
+    // }
     this.bluetoothSerialSubscriptions.forEach((subscription) =>
       subscription.remove(),
     )
@@ -252,6 +265,9 @@ export class Bluetooth extends BluetoothEventEmitter {
       end >= bytes.length
         ? ''
         : Buffer.from(bytes.slice(end).buffer).toString('base64')
+
+    // eslint-disable-next-line no-console
+    console.log('New message:', message, 'data:', data.join(', '))
 
     this.emit('message', message, data)
   }

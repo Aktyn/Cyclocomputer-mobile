@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
-import { core } from '../core'
+import { Core } from '../core'
 import type { ProgressDataBase } from '../core/progress'
 
 export function useProgress() {
-  const [progressStats, setProgressStats] = useState(core.progress.dataBase)
+  const [progressStats, setProgressStats] = useState(
+    Core.instance.progress.dataBase,
+  )
 
   useEffect(() => {
     const handleProgressUpdate = (data: ProgressDataBase) => {
       setProgressStats(data)
     }
 
-    core.progress.on('update', handleProgressUpdate)
+    Core.instance.progress.on('update', handleProgressUpdate)
 
     return () => {
-      core.progress.off('update', handleProgressUpdate)
+      Core.instance.progress.off('update', handleProgressUpdate)
     }
   }, [])
 

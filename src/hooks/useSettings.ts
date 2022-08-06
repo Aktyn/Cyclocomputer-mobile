@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { core } from '../core'
+import { Core } from '../core'
 import type { SettingsSchema } from '../core/settings'
 
 export function useSettings() {
   const settingsMethodsRef = useRef({
-    setSetting: core.settings.setSetting.bind(core.settings),
+    setSetting: Core.instance.settings.setSetting.bind(Core.instance.settings),
   })
 
-  const [settings, setSettings] = useState(core.settings.getSettings())
+  const [settings, setSettings] = useState(Core.instance.settings.getSettings())
 
   useEffect(() => {
     const handleSettingsChange = (newSettings: SettingsSchema) =>
       setSettings(newSettings)
 
-    core.settings.on('settingsChange', handleSettingsChange)
+    Core.instance.settings.on('settingsChange', handleSettingsChange)
 
     return () => {
-      core.settings.off('settingsChange', handleSettingsChange)
+      Core.instance.settings.off('settingsChange', handleSettingsChange)
     }
   }, [])
 

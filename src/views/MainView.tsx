@@ -11,7 +11,7 @@ import type {
 import { MapShapeType, LeafletView } from 'react-native-leaflet-view'
 import { FAB, Subheading, Text } from 'react-native-paper'
 import { CompassWidget } from '../components/CompassWidget'
-import { core } from '../core'
+import { Core } from '../core'
 import { IncomingMessageType } from '../core/message'
 import { useGPS } from '../hooks/useGPS'
 import { useProgress } from '../hooks/useProgress'
@@ -39,10 +39,10 @@ export const MainView = () => {
       }
     }
 
-    core.bluetooth.on('message', handleMessage)
+    Core.instance.bluetooth.on('message', handleMessage)
 
     return () => {
-      core.bluetooth.off('message', handleMessage)
+      Core.instance.bluetooth.off('message', handleMessage)
     }
   }, [])
 

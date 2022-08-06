@@ -1,6 +1,6 @@
 import type { LocationObject } from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
-import { core } from '.'
+import { Core } from '.'
 
 TaskManager.defineTask(
   //NOTE: taskName is not put into exported variable to prevent circular imports
@@ -16,7 +16,10 @@ TaskManager.defineTask(
       const location = locations[0]
 
       if (location) {
-        core.gps.updateLocation(location)
+        Core.instantiateFromBackgroundTask()
+          .then((core) => core.gps.updateLocation(location))
+          .catch(() => undefined)
+        // Core.instance.gps.updateLocation(location)
       }
     }
   },

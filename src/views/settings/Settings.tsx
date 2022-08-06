@@ -11,7 +11,7 @@ import {
   Title,
   useTheme,
 } from 'react-native-paper'
-import { core } from '../../core'
+import { Core } from '../../core'
 import type { SettingsSchema } from '../../core/settings'
 import { useMounted } from '../../hooks/useMounted'
 import { float, int } from '../../utils'
@@ -213,7 +213,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
           dark
           mode="contained"
           icon="delete"
-          onPress={() => core.progress.reset()}
+          onPress={() => Core.instance.progress.reset()}
         >
           Reset ride progress
         </Button>

@@ -13,9 +13,42 @@ import { Tour } from './tour'
 import type { WeatherSchema } from './weather'
 import { Weather } from './weather'
 
-const MAP_PREVIEW_SEND_FREQUENCY = 2000
+const MAP_PREVIEW_SEND_FREQUENCY = 4000
 
-class Core {
+export class Core {
+  private static coreInstance: Core | null = null
+  private static canvas: Canvas | null = null
+
+  public static get instance() {
+    if (!Core.coreInstance) {
+      throw new Error('Core is not initialized')
+    }
+    return Core.coreInstance // ?? new Core(false)
+  }
+
+  public static isInitialized() {
+    return !!Core.coreInstance
+  }
+
+  public static async instantiateFromBackgroundTask() {
+    if (!Core.coreInstance?.instantiatedFromBackgroundTask) {
+      // eslint-disable-next-line no-console
+      console.log('Instantiating core from background task')
+      await Core.coreInstance?.destroy()
+      Core.coreInstance = new Core(true)
+      if (Core.canvas) {
+        await Core.coreInstance.start()
+      }
+    }
+    return Core.coreInstance
+  }
+
+  public static registerCanvas(canvas: Canvas) {
+    Core.canvas = canvas
+  }
+
+  private instantiatedFromBackgroundTask: boolean
+
   readonly settings = new Settings()
   readonly bluetooth = new Bluetooth()
   readonly gps = new GPS()
@@ -45,7 +78,21 @@ class Core {
   private readonly onWeatherUpdate = this.handleWeatherUpdate.bind(this)
   // private readonly onProgressUpdate = this.handleProgressUpdate.bind(this)
 
-  constructor() {
+  private constructor(isBackgroundTask: boolean) {
+    if (!isBackgroundTask) {
+      throw new Error('Core can only be instantiated from background task')
+    }
+    if (Core.coreInstance !== null) {
+      throw new Error('Only one instance of Core is allowed')
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      `Initializing core from ${
+        isBackgroundTask ? 'background' : 'foreground'
+      } task`,
+    )
+    this.instantiatedFromBackgroundTask = isBackgroundTask
+
     this.tour.setSettings(
       this.settings.getSettings().gpxFile,
       this.settings.getSettings().mapZoom,
@@ -59,10 +106,12 @@ class Core {
     this.gps.on('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.on('update', this.onWeatherUpdate)
     // this.progress.on('update', this.onProgressUpdate)
+
+    Core.coreInstance = this
   }
 
-  destroy() {
-    this.stop()
+  async destroy() {
+    await this.stop()
 
     this.bluetooth.off('deviceConnected', this.onBluetoothDeviceConnected)
     this.bluetooth.off('message', this.onBluetoothMessage)
@@ -72,33 +121,45 @@ class Core {
     // this.progress.off('update', this.onProgressUpdate)
 
     this.settings.destroy()
-    this.bluetooth.destroy()
+    await this.bluetooth.destroy()
     this.gps.destroy()
     this.tour.destroy()
     this.weather.destroy()
     this.progress.destroy()
+
+    Core.coreInstance = null
   }
 
-  async start(canvas: Canvas) {
+  async start() {
+    if (!Core.canvas) {
+      throw new Error('Canvas is not registered')
+    }
+
     if (this.map) {
-      this.stop()
+      await this.stop()
     }
 
     // eslint-disable-next-line no-console
     console.log('Starting core')
 
-    await this.gps.startObservingLocation(this.settings.getSettings())
+    // this.instantiatedFromBackgroundTask = false // This is kinda expired since new background task is about to be created
+    // await this.gps.startObservingLocation(this.settings.getSettings())
     if (!this.map) {
-      this.map = new MapGenerator(canvas, this.settings.getSettings().mapZoom)
+      this.map = new MapGenerator(
+        Core.canvas,
+        this.settings.getSettings().mapZoom,
+      )
     }
     this.updateInfo = { updating: false, pendingUpdate: null }
   }
 
-  stop() {
+  async stop() {
     // eslint-disable-next-line no-console
     console.log('Stopping core')
     this.map = null
-    this.gps.stopObservingLocation()
+    // await this.gps.stopObservingLocation()
+    // eslint-disable-next-line no-console
+    console.log('\tdone')
   }
 
   private sendCircumferenceUpdate() {
@@ -253,22 +314,22 @@ class Core {
       this.sendCircumferenceUpdate()
     }
 
-    if (this.map && settings.mapZoom !== this.map.zoom) {
-      this.map = new MapGenerator(this.map.canvas, settings.mapZoom)
-    }
+    // if (this.map && settings.mapZoom !== this.map.zoom) {
+    //   this.map = new MapGenerator(this.map.canvas, settings.mapZoom)
+    // }
 
-    if (
-      this.map &&
-      this.gps.locationObservingOptions &&
-      (this.gps.locationObservingOptions.accuracy !== settings.gpsAccuracy ||
-        this.gps.locationObservingOptions.gpsTimeInterval !==
-          settings.gpsTimeInterval ||
-        this.gps.locationObservingOptions.gpsDistanceSensitivity !==
-          settings.gpsDistanceSensitivity)
-    ) {
-      await this.gps.stopObservingLocation()
-      await this.gps.startObservingLocation(settings)
-    }
+    // if (
+    //   this.map &&
+    //   this.gps.locationObservingOptions &&
+    //   (this.gps.locationObservingOptions.accuracy !== settings.gpsAccuracy ||
+    //     this.gps.locationObservingOptions.gpsTimeInterval !==
+    //       settings.gpsTimeInterval ||
+    //     this.gps.locationObservingOptions.gpsDistanceSensitivity !==
+    //       settings.gpsDistanceSensitivity)
+    // ) {
+    //   await this.gps.stopObservingLocation()
+    //   await this.gps.startObservingLocation(settings)
+    // }
   }
 
   private async handleCoordinatesUpdate(coords: Coordinates) {
@@ -358,5 +419,3 @@ class Core {
     }
   }
 }
-
-export const core = new Core()

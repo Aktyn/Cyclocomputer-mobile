@@ -60,7 +60,7 @@ export class Settings extends SettingsEventEmitter {
       .catch((error) => {
         // eslint-disable-next-line no-console
         console.error(
-          `Cannot read circumference value: ${
+          `Cannot read settings: ${
             error instanceof Error ? error.message : String(error)
           }`,
         )

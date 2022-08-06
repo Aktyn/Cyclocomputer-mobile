@@ -3,14 +3,16 @@ import type { AppStateStatus } from 'react-native'
 import { AppState } from 'react-native'
 import Canvas from 'react-native-canvas'
 import DeviceInfo from 'react-native-device-info'
-import { core } from '../core'
+import { Core } from '../core'
 import { useBluetooth } from '../hooks/useBluetooth'
+import { DebugView } from './DebugView'
 import { MainView } from './MainView'
 import { ScanningView } from './ScanningView'
 
 enum VIEW {
   SCANNING,
   MAIN,
+  DEBUG,
 }
 
 export const ViewRouter = () => {
@@ -25,7 +27,7 @@ export const ViewRouter = () => {
     if (connectedDevices.length) {
       setView(VIEW.MAIN)
     } else {
-      core.stop()
+      // Core.instance.stop().catch(() => undefined)
       setView(VIEW.SCANNING)
     }
   }, [connectedDevices.length])
@@ -33,7 +35,7 @@ export const ViewRouter = () => {
   useEffect(() => {
     DeviceInfo.isEmulator().then((emulator) => {
       if (emulator) {
-        setView(VIEW.MAIN)
+        setView(VIEW.DEBUG)
       }
     })
 
@@ -49,7 +51,7 @@ export const ViewRouter = () => {
     )
     return () => {
       subscription.remove()
-      core.stop()
+      Core.instance.stop()
     }
   }, [])
 
@@ -57,8 +59,9 @@ export const ViewRouter = () => {
     if (!canvasRef.current) {
       return
     }
-    core
-      .start(canvasRef.current)
+    Core.registerCanvas(canvasRef.current)
+    Core.instance
+      .start()
       // eslint-disable-next-line no-console
       .catch(console.error)
   }, [view])
@@ -75,6 +78,8 @@ export const ViewRouter = () => {
           <Canvas ref={canvasRef} />
         </>
       )
+    case VIEW.DEBUG:
+      return <DebugView />
     default:
       return null
   }

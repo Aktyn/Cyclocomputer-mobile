@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
-import { core } from '../core'
+import { Core } from '../core'
 import type { ClusteredTour } from '../core/tour'
 
 export function useTour() {
-  const [tour, setTour] = useState(core.tour.getTour())
+  const [tour, setTour] = useState(Core.instance.tour.getTour())
 
   useEffect(() => {
     const handleTourUpdate = (newTour: ClusteredTour) => setTour(newTour)
 
-    core.tour.on('tourUpdate', handleTourUpdate)
+    Core.instance.tour.on('tourUpdate', handleTourUpdate)
 
     return () => {
-      core.tour.off('tourUpdate', handleTourUpdate)
+      Core.instance.tour.off('tourUpdate', handleTourUpdate)
     }
   }, [])
 

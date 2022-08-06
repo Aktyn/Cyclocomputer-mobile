@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react'
-import { core } from '../core'
+import { Core } from '../core'
 import type { WeatherSchema } from '../core/weather'
 
 export function useWeather() {
   const [weather, setWeather] = useState<WeatherSchema | null>(
-    core.weather.getWeather(),
+    Core.instance.weather.getWeather(),
   )
 
   useEffect(() => {
     const handleWeatherUpdate = (currentWeather: WeatherSchema | null) =>
       setWeather(currentWeather)
 
-    core.weather.on('update', handleWeatherUpdate)
+    Core.instance.weather.on('update', handleWeatherUpdate)
 
     return () => {
-      core.weather.off('update', handleWeatherUpdate)
+      Core.instance.weather.off('update', handleWeatherUpdate)
     }
   }, [])
 
