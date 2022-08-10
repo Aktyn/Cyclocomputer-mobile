@@ -339,9 +339,11 @@ export class Bluetooth extends BluetoothEventEmitter {
 
       const device = BluetoothSerial.device(deviceInfo.id)
       await device.connect()
+      return true
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(`Cannot connect to device ${deviceInfo.name}`)
+      return false
     }
   }
 

@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { blueGrey, cyan, lightGreen } from 'material-ui-colors'
 import type { StyleProp, TextStyle } from 'react-native'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Button, Title, List } from 'react-native-paper'
 import { useBluetooth } from '../hooks/useBluetooth'
+import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useMounted } from '../hooks/useMounted'
 
 type ListIconProps = {
@@ -21,6 +23,8 @@ const DeviceListIcon = (props: ListIconProps) => (
 
 export const ScanningView = () => {
   const mounted = useMounted()
+  const cancellable = useCancellablePromise()
+
   const {
     bluetoothEnabled,
     requestBluetoothEnable,
@@ -30,8 +34,10 @@ export const ScanningView = () => {
     devices,
     connectedDevices,
   } = useBluetooth()
+
   const [connecting, setConnecting] = useState('')
   const [enablingBluetooth, setEnablingBluetooth] = useState(false)
+  const [cyclocomputerID, setCyclocomputerID] = useState<string | null>(null)
 
   // Automatically scan for devices
   useEffect(() => {
@@ -40,17 +46,53 @@ export const ScanningView = () => {
     }
   }, [bluetoothEnabled, scan])
 
-  const handleConnectToDevice = (device: typeof devices[number]) => {
-    setConnecting(device.id)
-    connectToDevice(device)
-      .then(() => {
-        if (mounted.current) {
-          setConnecting('')
+  useEffect(() => {
+    cancellable(AsyncStorage.getItem('@cyclocomputer-id'))
+      .then((cyclocomputerId) => {
+        if (cyclocomputerId) {
+          setCyclocomputerID(cyclocomputerId)
         }
-        //TODO: save connected device to settings for next time to automatically connect to it
       })
-      .catch(() => undefined)
-  }
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Cannot read cyclocomputer id: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
+      })
+  }, [cancellable])
+
+  const handleConnectToDevice = useCallback(
+    (device: typeof devices[number]) => {
+      setConnecting(device.id)
+      connectToDevice(device).then((success) => {
+        if (!mounted.current) {
+          return
+        }
+        setConnecting('')
+        AsyncStorage.setItem(
+          '@cyclocomputer-id',
+          success ? device.id : '',
+        ).catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error(
+            `Cannot set cyclocomputer id: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          )
+        })
+      })
+    },
+    [connectToDevice, mounted],
+  )
+
+  useEffect(() => {
+    const cyclocomputerDevice = devices.find(({ id }) => id === cyclocomputerID)
+    if (cyclocomputerDevice) {
+      handleConnectToDevice(cyclocomputerDevice)
+    }
+  }, [cyclocomputerID, devices, handleConnectToDevice])
 
   return (
     <View style={styles.container}>
@@ -74,7 +116,7 @@ export const ScanningView = () => {
               const textStyle: StyleProp<TextStyle> = {
                 color: connected
                   ? lightGreen[300]
-                  : device.id === '2B:0A:DA:99:6C:F7'
+                  : device.id === cyclocomputerID //'2B:0A:DA:99:6C:F7'
                   ? cyan[100]
                   : blueGrey[100],
               }
