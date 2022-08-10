@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppStateStatus } from 'react-native'
 import { AppState } from 'react-native'
-import Canvas from 'react-native-canvas'
 import DeviceInfo from 'react-native-device-info'
 import { Core } from '../core'
 import { useBluetooth } from '../hooks/useBluetooth'
@@ -16,8 +15,6 @@ enum VIEW {
 }
 
 export const ViewRouter = () => {
-  const canvasRef = useRef<Canvas>(null)
-
   const [view, setView] = useState(VIEW.SCANNING)
   const [appStateVisible, setAppStateVisible] = useState(AppState.currentState)
 
@@ -25,10 +22,14 @@ export const ViewRouter = () => {
 
   useEffect(() => {
     if (connectedDevices.length) {
-      setView(VIEW.MAIN)
-    } else {
-      // Core.instance.stop().catch(() => undefined)
-      setView(VIEW.SCANNING)
+      Core.instance.start().finally(() => setView(VIEW.MAIN))
+    } else if (Core.instance.running) {
+      Core.instance
+        .stop()
+        .catch(() => undefined)
+        .finally(() => {
+          setView(VIEW.SCANNING)
+        })
     }
   }, [connectedDevices.length])
 
@@ -36,6 +37,7 @@ export const ViewRouter = () => {
     DeviceInfo.isEmulator().then((emulator) => {
       if (emulator) {
         setView(VIEW.DEBUG)
+        //! Core.instance.start().finally(() => setView(VIEW.MAIN))
       }
     })
 
@@ -55,29 +57,13 @@ export const ViewRouter = () => {
     }
   }, [])
 
-  useEffect(() => {
-    if (!canvasRef.current) {
-      return
-    }
-    Core.registerCanvas(canvasRef.current)
-    Core.instance
-      .start()
-      // eslint-disable-next-line no-console
-      .catch(console.error)
-  }, [view])
-
   const isBackgroundState = !!appStateVisible.match(/inactive|background/)
 
   switch (view) {
     case VIEW.SCANNING:
       return isBackgroundState ? null : <ScanningView />
     case VIEW.MAIN:
-      return (
-        <>
-          {isBackgroundState ? null : <MainView />}
-          <Canvas ref={canvasRef} />
-        </>
-      )
+      return isBackgroundState ? null : <MainView />
     case VIEW.DEBUG:
       return <DebugView />
     default:

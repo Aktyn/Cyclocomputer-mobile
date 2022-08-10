@@ -37,7 +37,7 @@ export class Tour extends TourEventEmitter {
   }
 
   destroy() {
-    //
+    super.removeAllListeners()
   }
 
   getTour() {

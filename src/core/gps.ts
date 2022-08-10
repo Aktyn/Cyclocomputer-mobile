@@ -3,6 +3,7 @@ import * as Location from 'expo-location'
 import type { LocationObject } from 'expo-location'
 import { distanceBetweenEarthCoordinatesInKm, pick } from '../utils'
 import { requestBackgroundLocationPermissions } from './common'
+import type { SettingsSchema } from './settings'
 
 export type Coordinates = {
   timestamp: number
@@ -47,11 +48,11 @@ export class GPS extends GPSEventEmitter {
     slope: 0,
     speed: 0,
   }
-  // locationObservingOptions: {
-  //   accuracy: number
-  //   gpsTimeInterval: number
-  //   gpsDistanceSensitivity: number
-  // } | null = null
+  locationObservingOptions: {
+    accuracy: number
+    gpsTimeInterval: number
+    gpsDistanceSensitivity: number
+  } | null = null
 
   constructor() {
     super()
@@ -66,8 +67,9 @@ export class GPS extends GPSEventEmitter {
     )
   }
 
-  destroy() {
-    // await this.stopObservingLocation()
+  async destroy() {
+    super.removeAllListeners()
+    await this.stopObservingLocation()
   }
 
   isGranted() {
@@ -125,43 +127,49 @@ export class GPS extends GPSEventEmitter {
     this.emit('coordinatesUpdate', this.coordinates)
   }
 
-  // async startObservingLocation(settings: SettingsSchema) {
-  //   const accuracy = settings.gpsAccuracy
-  //   const gpsTimeInterval = settings.gpsTimeInterval
-  //   const gpsDistanceSensitivity = settings.gpsDistanceSensitivity
+  async startObservingLocation(settings: SettingsSchema) {
+    const accuracy = settings.gpsAccuracy
+    const gpsTimeInterval = settings.gpsTimeInterval
+    const gpsDistanceSensitivity = settings.gpsDistanceSensitivity
 
-  //   this.locationObservingOptions = {
-  //     accuracy,
-  //     gpsTimeInterval,
-  //     gpsDistanceSensitivity,
-  //   }
-  //   await Location.startLocationUpdatesAsync('BACKGROUND_LOCATION_TASK', {
-  //     accuracy,
-  //     timeInterval: gpsTimeInterval,
-  //     deferredUpdatesInterval: gpsTimeInterval,
-  //     distanceInterval: gpsDistanceSensitivity,
-  //     deferredUpdatesDistance: gpsDistanceSensitivity,
+    this.locationObservingOptions = {
+      accuracy,
+      gpsTimeInterval,
+      gpsDistanceSensitivity,
+    }
 
-  //     showsBackgroundLocationIndicator: true,
-  //     foregroundService: {
-  //       notificationTitle: 'Location',
-  //       notificationBody: 'Location tracking in background',
-  //       notificationColor: '#fff',
-  //     },
-  //   })
-  // }
+    await Location.startLocationUpdatesAsync(
+      'CYCLOCOMPUTER_BACKGROUND_LOCATION',
+      {
+        accuracy,
+        timeInterval: gpsTimeInterval,
+        deferredUpdatesInterval: gpsTimeInterval,
+        distanceInterval: gpsDistanceSensitivity,
+        deferredUpdatesDistance: gpsDistanceSensitivity,
 
-  // async stopObservingLocation() {
-  //   try {
-  //     this.locationObservingOptions = null
-  //     await Location.stopLocationUpdatesAsync('BACKGROUND_LOCATION_TASK')
-  //   } catch (e) {
-  //     // eslint-disable-next-line no-console
-  //     console.error(
-  //       `Error while stopping location updates: ${
-  //         e instanceof Error ? e.message : String(e)
-  //       }`,
-  //     )
-  //   }
-  // }
+        showsBackgroundLocationIndicator: true,
+        foregroundService: {
+          notificationTitle: 'Cyclocomputer',
+          notificationBody: 'Location is tracking in background',
+          notificationColor: '#fff',
+        },
+      },
+    )
+  }
+
+  async stopObservingLocation() {
+    try {
+      this.locationObservingOptions = null
+      await Location.stopLocationUpdatesAsync(
+        'CYCLOCOMPUTER_BACKGROUND_LOCATION',
+      )
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Cannot stop location updates: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      )
+    }
+  }
 }

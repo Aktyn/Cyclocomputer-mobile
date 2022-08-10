@@ -4,7 +4,7 @@ import { Core } from '.'
 
 TaskManager.defineTask(
   //NOTE: taskName is not put into exported variable to prevent circular imports
-  'BACKGROUND_LOCATION_TASK',
+  'CYCLOCOMPUTER_BACKGROUND_LOCATION',
   async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
     if (error) {
       // eslint-disable-next-line no-console
@@ -16,10 +16,10 @@ TaskManager.defineTask(
       const location = locations[0]
 
       if (location) {
-        Core.instantiateFromBackgroundTask()
-          .then((core) => core.gps.updateLocation(location))
-          .catch(() => undefined)
-        // Core.instance.gps.updateLocation(location)
+        // Core.instantiateFromBackgroundTask()
+        //   .then((core) => core.gps.updateLocation(location))
+        //   .catch(() => undefined)
+        Core.instance.gps.updateLocation(location)
       }
     }
   },

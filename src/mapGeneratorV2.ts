@@ -11,6 +11,8 @@ const TILE_RESOLUTION = 256 //openstreetmap tile resolution
 const scalar = 1e14
 export const pixelRatio = PixelRatio.getPixelSizeForLayoutSize(scalar) / scalar
 
+const positionCursorRadius = 5
+
 class Tile {
   private image: DecodedPng | null = null
 
@@ -62,18 +64,17 @@ export class MapGeneratorV2 {
 
   private static tilesCache = new Map<string, Tile>()
 
-  private readonly zoom: number
+  readonly zoom: number
 
   //TODO: use Uint8Array
-  private readonly canvas: CustomCanvas
+  private readonly canvas = new CustomCanvas(
+    MapGeneratorV2.OUTPUT_RESOLUTION,
+    MapGeneratorV2.OUTPUT_RESOLUTION,
+    1, // Grayscale output with will be anyway converted to black and white monoHLSB
+  )
 
   constructor(zoom = 16) {
     this.zoom = zoom
-    this.canvas = new CustomCanvas(
-      MapGeneratorV2.OUTPUT_RESOLUTION,
-      MapGeneratorV2.OUTPUT_RESOLUTION,
-      1, // Grayscale output with will be anyway converted to black and white monoHLSB
-    )
   }
 
   getData() {
@@ -95,29 +96,116 @@ export class MapGeneratorV2 {
     return tile
   }
 
+  private drawPointer() {
+    this.canvas.setFillColor([0x00])
+    this.canvas.drawCircle(64, 64, positionCursorRadius)
+    this.canvas.setFillColor([0xff])
+    this.canvas.drawCircle(64, 64, positionCursorRadius - 2)
+    this.canvas.setFillColor([0x00])
+    this.canvas.drawCircle(64, 64, 1)
+  }
+
   update(
     latitude: number,
     longitude: number,
     rotation: number,
-    _tour: ClusteredTour,
+    tour: ClusteredTour,
   ) {
     const tilePosition = convertLatLongToTile(latitude, longitude, this.zoom)
     this.canvas.setRotation(rotation)
+    this.canvas.setTranslation(0, (this.canvas.height / 2) * 0.618)
+
+    const relevantKeys = new Set<string>()
+    type GeoPoint = (ClusteredTour extends Map<string, infer P>
+      ? P
+      : Array<unknown>)[number]
+    const tourPoints: GeoPoint[] = []
 
     const maxI = 2 ** this.zoom
-    const x = Math.floor(tilePosition.x)
-    const y = Math.floor(tilePosition.y)
+    const x = Math.floor(tilePosition.x) % maxI
+    const y = Math.floor(tilePosition.y) % maxI
 
-    const tile = this.fetchTile(
-      // (x + xx) % maxI,
-      x % maxI,
-      // (y + yy) % maxI,
-      y % maxI,
-    )
+    const tilesGridRadius = 1
+    const r = tilesGridRadius + 1
+    for (let xx = -r; xx <= r; xx++) {
+      for (let yy = -r; yy <= r; yy++) {
+        const tileX = (x + xx) % maxI
+        const tileY = (y + yy) % maxI
 
-    const tileImage = tile.getImage()
-    if (tileImage) {
-      this.canvas.drawImage(tileImage, -64, -64)
+        const key = `${tileX}-${tileY}` //NOTE: must match key format used in useTour
+        relevantKeys.add(key)
+        //Just preload edge images
+        if (
+          xx < -tilesGridRadius ||
+          xx > tilesGridRadius ||
+          yy < -tilesGridRadius ||
+          yy > tilesGridRadius
+        ) {
+          if (!MapGeneratorV2.tilesCache.has(key)) {
+            this.fetchTile(tileX, tileY)
+          }
+          continue
+        }
+
+        const tile = this.fetchTile(tileX, tileY)
+
+        const offsetX = tilePosition.x - tileX
+        const offsetY = tilePosition.y - tileY
+
+        const tileImage = tile.getImage()
+        if (tileImage) {
+          const tilePosX = Math.round(
+            this.canvas.width / 2 - offsetX * tileImage.width,
+          )
+          const tilePosY = Math.round(
+            this.canvas.height / 2 - offsetY * tileImage.height,
+          )
+          this.canvas.drawImage(tileImage, tilePosX, tilePosY)
+        }
+
+        //Extract points from tour cluster
+        if (tour.has(key)) {
+          tourPoints.push(...(tour.get(key) as GeoPoint[]))
+        }
+      }
+    }
+
+    if (tourPoints.length > 1) {
+      tourPoints.sort((p1, p2) => p1.index - p2.index)
+      //TODO: draw tour line
+      console.log('tour points:', tourPoints.length)
+
+      this.canvas.toggleTextureFill(true)
+
+      let prev: [number, number] | null = null
+      for (const {
+        tilePos: { x: tourPointX, y: tourPointY },
+      } of tourPoints) {
+        const diffX = tourPointX - tilePosition.x
+        const diffY = tourPointY - tilePosition.y
+        // console.log(`{diffX: ${diffX}, diffY: ${diffY}, index: ${index}},`)
+
+        const point: [number, number] = [
+          this.canvas.width / 2 + diffX * TILE_RESOLUTION,
+          this.canvas.height / 2 + diffY * TILE_RESOLUTION,
+        ]
+
+        if (prev) {
+          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 5)
+        }
+
+        prev = point
+      }
+      this.canvas.toggleTextureFill(false)
+    }
+
+    this.drawPointer()
+
+    //Cleanup
+    for (const key of MapGeneratorV2.tilesCache.keys()) {
+      if (!relevantKeys.has(key)) {
+        MapGeneratorV2.tilesCache.delete(key)
+      }
     }
   }
 }

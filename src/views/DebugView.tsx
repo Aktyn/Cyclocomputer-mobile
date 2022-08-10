@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Canvas, { ImageData } from 'react-native-canvas'
+import { Core } from '../core'
 import { MapGeneratorV2, pixelRatio } from '../mapGeneratorV2'
 
 export const DebugView = () => {
@@ -25,7 +26,7 @@ export const DebugView = () => {
 
     const map = new MapGeneratorV2()
 
-    const dummyTour = new Map()
+    // const dummyTour = new Map()
     let rotation = 0
 
     const update = () => {
@@ -33,7 +34,7 @@ export const DebugView = () => {
         return
       }
       const start = Date.now()
-      map.update(51.776894, 19.4281948, rotation, dummyTour) //Core.instance.tour.getTour()
+      map.update(51.776894, 19.4281948, rotation, Core.instance.tour.getTour())
       rotation += Math.PI / 90
       if (rotation > Math.PI * 2) {
         rotation -= Math.PI * 2
@@ -61,7 +62,7 @@ export const DebugView = () => {
         Math.round((rotation * 180) / Math.PI),
         '°',
       )
-      setTimeout(update, 100)
+      setTimeout(update, 500)
     }
 
     update()

@@ -94,6 +94,7 @@ export class Progress extends ProgressEventEmitter {
   }
 
   destroy() {
+    super.removeAllListeners()
     this.synchronizeData.cancel()
   }
 

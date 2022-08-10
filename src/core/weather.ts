@@ -73,7 +73,7 @@ export class Weather extends WeatherEventEmitter {
   }
 
   destroy() {
-    //
+    super.removeAllListeners()
   }
 
   getWeather() {

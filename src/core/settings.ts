@@ -41,7 +41,7 @@ export class Settings extends SettingsEventEmitter {
   }
 
   destroy() {
-    //
+    super.removeAllListeners()
   }
 
   getSettings(): SettingsSchema {

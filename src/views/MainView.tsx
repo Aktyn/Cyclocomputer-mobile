@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Buffer } from '@craftzdog/react-native-buffer'
 import { cyan } from 'material-ui-colors'
 import type { StyleProp, TextStyle } from 'react-native'
 import { StyleSheet, View } from 'react-native'
+import Canvas, { ImageData } from 'react-native-canvas'
 import type {
   LatLng,
   MapShape,
@@ -17,12 +18,15 @@ import { useGPS } from '../hooks/useGPS'
 import { useProgress } from '../hooks/useProgress'
 import { useTour } from '../hooks/useTour'
 import { useWeather } from '../hooks/useWeather'
+import { MapGeneratorV2, pixelRatio } from '../mapGeneratorV2'
 import { clamp, parseTime } from '../utils'
 import { SettingsDialog } from './settings/SettingsDialog'
 
 const DEFAULT_ZOOM = 16
 
 export const MainView = () => {
+  const canvasRef = useRef<Canvas>(null)
+
   const gps = useGPS()
   const tour = useTour()
   const weather = useWeather()
@@ -43,6 +47,45 @@ export const MainView = () => {
 
     return () => {
       Core.instance.bluetooth.off('message', handleMessage)
+    }
+  }, [])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) {
+      return
+    }
+
+    const RES = MapGeneratorV2.OUTPUT_RESOLUTION / pixelRatio
+
+    canvas.width = RES
+    canvas.height = RES
+
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#fff0'
+    ctx.fillRect(0, 0, RES, RES)
+
+    const handleMapUpdate = (greyScaleData: Uint8Array | Uint8ClampedArray) => {
+      const data = new Array(greyScaleData.length * 4)
+      for (let i = 0; i < greyScaleData.length; i++) {
+        for (let j = 0; j < 3; j++) {
+          data[i * 4 + j] = greyScaleData[i]
+        }
+        data[i * 4 + 3] = 255
+      }
+      const imageData = new ImageData(
+        canvas,
+        data,
+        MapGeneratorV2.OUTPUT_RESOLUTION,
+        MapGeneratorV2.OUTPUT_RESOLUTION,
+      )
+      ctx.putImageData(imageData, 0, 0)
+    }
+
+    Core.instance.on('mapUpdate', handleMapUpdate)
+
+    return () => {
+      Core.instance.off('mapUpdate', handleMapUpdate)
     }
   }, [])
 
@@ -217,6 +260,9 @@ export const MainView = () => {
           <Text>GPS is not granted</Text>
         )}
       </View>
+      <View style={styles.generatedMap}>
+        <Canvas ref={canvasRef} style={styles.canvas} />
+      </View>
       <FAB
         style={styles.fab}
         icon="cog"
@@ -283,5 +329,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  generatedMap: {
+    minHeight: 192,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff2',
+  },
+  canvas: {
+    transform: [{ scale: 5 }],
   },
 })
