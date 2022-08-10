@@ -1,7 +1,7 @@
 import EventEmitter from 'events'
 import * as Location from 'expo-location'
 import type { LocationObject } from 'expo-location'
-import { distanceBetweenEarthCoordinatesInKm, pick } from '../utils'
+import { pick } from '../utils'
 import { requestBackgroundLocationPermissions } from './common'
 import type { SettingsSchema } from './settings'
 
@@ -10,12 +10,12 @@ export type Coordinates = {
   latitude: number
   longitude: number
   /** The altitude in meters above the WGS 84 reference ellipsoid */
-  altitude: number
+  // altitude: number
   /** Horizontal direction of travel of this device, measured in degrees starting at due north and continuing clockwise around the compass. Thus, north is 0 degrees, east is 90 degrees, south is 180 degrees, and so on. */
   heading: number
   /** Meters per second */
   speed: number
-  slope: number
+  // slope: number
 }
 
 declare interface GPSEventEmitter {
@@ -44,8 +44,8 @@ export class GPS extends GPSEventEmitter {
     latitude: 0,
     longitude: 0,
     heading: 0,
-    altitude: -Number.MAX_SAFE_INTEGER,
-    slope: 0,
+    // altitude: -Number.MAX_SAFE_INTEGER,
+    // slope: 0,
     speed: 0,
   }
   locationObservingOptions: {
@@ -100,27 +100,27 @@ export class GPS extends GPSEventEmitter {
 
   /** Should be called only from TaskManager */
   updateLocation(location: LocationObject) {
-    let slope = 0
+    // let slope = 0
 
-    if (this.coordinates.altitude !== -Number.MAX_SAFE_INTEGER) {
-      const verticalDistance =
-        (location.coords.altitude ?? 0) - this.coordinates.altitude
-      const horizontalDistance =
-        distanceBetweenEarthCoordinatesInKm(
-          location.coords.latitude,
-          location.coords.longitude,
-          this.coordinates.latitude,
-          this.coordinates.longitude,
-        ) * 1000
+    // if (this.coordinates.altitude !== -Number.MAX_SAFE_INTEGER) {
+    //   const verticalDistance =
+    //     (location.coords.altitude ?? 0) - this.coordinates.altitude
+    //   const horizontalDistance =
+    //     distanceBetweenEarthCoordinatesInKm(
+    //       location.coords.latitude,
+    //       location.coords.longitude,
+    //       this.coordinates.latitude,
+    //       this.coordinates.longitude,
+    //     ) * 1000
 
-      slope = (Math.atan2(verticalDistance, horizontalDistance) * 180) / Math.PI
-    }
+    //   slope = (Math.atan2(verticalDistance, horizontalDistance) * 180) / Math.PI
+    // }
 
     this.coordinates = {
       timestamp: location.timestamp,
-      slope,
+      // slope,
       heading: location.coords.heading ?? 0,
-      altitude: location.coords.altitude ?? 0,
+      // altitude: location.coords.altitude ?? 0,
       speed: location.coords.speed ?? 0,
       ...pick(location.coords, 'latitude', 'longitude'),
     }

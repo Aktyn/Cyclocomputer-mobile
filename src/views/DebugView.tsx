@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Canvas, { ImageData } from 'react-native-canvas'
 import { Core } from '../core'
-import { MapGeneratorV2, pixelRatio } from '../mapGeneratorV2'
+import { MapGeneratorV2, pixelRatio } from '../core/map/mapGeneratorV2'
 
 export const DebugView = () => {
   const canvasRef = useRef<Canvas>(null)
@@ -39,7 +39,7 @@ export const DebugView = () => {
       if (rotation > Math.PI * 2) {
         rotation -= Math.PI * 2
       }
-      const greyScaleData = map.getData()
+      const greyScaleData = map.data
       const data = new Array(greyScaleData.length * 4)
       for (let i = 0; i < greyScaleData.length; i++) {
         for (let j = 0; j < 3; j++) {
@@ -55,6 +55,7 @@ export const DebugView = () => {
       )
       ctx.putImageData(imageData, 0, 0)
 
+      // eslint-disable-next-line no-console
       console.log(
         'update time:',
         Date.now() - start,

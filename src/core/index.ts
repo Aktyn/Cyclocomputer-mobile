@@ -1,14 +1,15 @@
 import EventEmitter from 'events'
-import { MapGeneratorV2 } from '../mapGeneratorV2'
 import { removeDiacritics } from '../utils'
 import { Bluetooth } from './bluetooth'
 import { parseImageDataV2 } from './common'
 import type { Coordinates } from './gps'
 import { GPS } from './gps'
+import { MapGeneratorV2 } from './map/mapGeneratorV2'
 import { IncomingMessageType, MessageType } from './message'
 import { Progress } from './progress'
 import type { SettingsSchema } from './settings'
 import { Settings } from './settings'
+import type { ClusteredTour } from './tour'
 import { Tour } from './tour'
 import type { WeatherSchema } from './weather'
 import { Weather } from './weather'
@@ -33,9 +34,6 @@ export class Core extends CoreEventEmitter {
   private static coreInstance: Core | null = null
 
   public static get instance() {
-    // if (!Core.coreInstance) {
-    //   throw new Error('Core is not initialized')
-    // }
     return Core.coreInstance ?? new Core()
   }
 
@@ -70,7 +68,7 @@ export class Core extends CoreEventEmitter {
   private readonly onBluetoothDeviceConnected =
     this.handleBluetoothDeviceConnected.bind(this)
   private readonly onWeatherUpdate = this.handleWeatherUpdate.bind(this)
-  // private readonly onProgressUpdate = this.handleProgressUpdate.bind(this)
+  private readonly onTourUpdate = this.handleTourUpdate.bind(this)
 
   private constructor() {
     if (Core.coreInstance !== null) {
@@ -93,7 +91,7 @@ export class Core extends CoreEventEmitter {
     this.settings.on('settingsChange', this.onSettingsChange)
     this.gps.on('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.on('update', this.onWeatherUpdate)
-    // this.progress.on('update', this.onProgressUpdate)
+    this.tour.on('tourUpdate', this.onTourUpdate)
 
     Core.coreInstance = this
   }
@@ -106,7 +104,7 @@ export class Core extends CoreEventEmitter {
     this.settings.off('settingsChange', this.onSettingsChange)
     this.gps.off('coordinatesUpdate', this.onCoordinatesUpdate)
     this.weather.off('update', this.onWeatherUpdate)
-    // this.progress.off('update', this.onProgressUpdate)
+    this.tour.off('tourUpdate', this.onTourUpdate)
 
     this.settings.destroy()
     await this.bluetooth.destroy()
@@ -203,8 +201,17 @@ export class Core extends CoreEventEmitter {
   private handleBluetoothDeviceConnected() {
     this.sendCircumferenceUpdate()
     const coords = this.gps.getCoordinates()
-    this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
+    // this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
+    this.sendGpsStatisticsUpdate(
+      this.progress.dataBase.currentAltitude,
+      coords.heading,
+      this.progress.dataBase.currentSlope,
+    )
     this.handleWeatherUpdate(this.weather.getWeather())
+  }
+
+  private handleTourUpdate(tour: ClusteredTour, zoom: number) {
+    MapGeneratorV2.preloadTourTiles(tour, zoom)
   }
 
   private handleWeatherUpdate(weather: WeatherSchema | null) {
@@ -332,7 +339,12 @@ export class Core extends CoreEventEmitter {
     if (Date.now() - this.lastProgressDataSendTimestamp > 1000 * 60 * 2) {
       this.sendProgressData()
     }
-    this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
+    // this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
+    this.sendGpsStatisticsUpdate(
+      this.progress.dataBase.currentAltitude,
+      coords.heading,
+      this.progress.dataBase.currentSlope,
+    )
 
     if (this.updateInfo.updating) {
       this.updateInfo.pendingUpdate = coords
@@ -361,8 +373,8 @@ export class Core extends CoreEventEmitter {
         -((coords.heading ?? 0) * Math.PI) / 180,
         this.tour.getTour(),
       )
-      await this.sendMapPreview(this.map.getData())
-      this.emit('mapUpdate', this.map.getData())
+      await this.sendMapPreview(this.map.data)
+      this.emit('mapUpdate', this.map.data)
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(
@@ -371,7 +383,7 @@ export class Core extends CoreEventEmitter {
     }
   }
 
-  private getCyclocomputer() {
+  getCyclocomputer() {
     const connectedDevices = this.bluetooth.getConnectedDevices()
     if (connectedDevices.length < 1) {
       return

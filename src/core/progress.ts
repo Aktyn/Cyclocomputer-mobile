@@ -14,6 +14,8 @@ export interface ProgressDataBase {
   altitudeChange: { up: number; down: number }
   rideDuration: number
   timeInMotion: number
+  currentAltitude: number
+  currentSlope: number
 }
 
 interface ProgressData extends ProgressDataBase {
@@ -27,6 +29,8 @@ function getEmptyProgressData(): ProgressData {
     altitudeChange: { up: 0, down: 0 },
     rideDuration: 0,
     timeInMotion: 0,
+    currentAltitude: 0,
+    currentSlope: 0,
   }
 }
 
@@ -67,7 +71,8 @@ export class Progress extends ProgressEventEmitter {
         if (!progressString) {
           return
         }
-        const loadedData = tryParseJSON(progressString, getEmptyProgressData())
+        const emptyProgress = getEmptyProgressData()
+        const loadedData = tryParseJSON(progressString, emptyProgress)
 
         //if last saved coordinates are older than 8 hours, discard entire saved progress data
         if (
@@ -78,7 +83,7 @@ export class Progress extends ProgressEventEmitter {
           return
         }
 
-        this.data = loadedData
+        this.data = { ...emptyProgress, ...loadedData }
       })
       .catch((error) => {
         // eslint-disable-next-line no-console
@@ -104,6 +109,8 @@ export class Progress extends ProgressEventEmitter {
       altitudeChange: this.data.altitudeChange,
       rideDuration: this.data.rideDuration,
       timeInMotion: this.data.timeInMotion,
+      currentAltitude: this.data.currentAltitude,
+      currentSlope: this.data.currentSlope,
     }
   }
 
@@ -112,22 +119,58 @@ export class Progress extends ProgressEventEmitter {
     this.emit('update', this.dataBase)
   }
 
+  private async fetchAltitude(
+    latitude: number,
+    longitude: number,
+  ): Promise<number> {
+    try {
+      const data = await fetch(
+        `https://api.opentopodata.org/v1/eudem25m?locations=${latitude},${longitude}`,
+        { method: 'GET' },
+      ).then((res) => res.json())
+
+      if (data?.status !== 'OK') {
+        return 0
+      }
+
+      return data.results?.[0]?.elevation ?? 0
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Cannot fetch elevation data: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+      return 0
+    }
+  }
+
   /** Should be called only from Core */
   async updateProgress(coords: Coordinates) {
-    // await waitFor(() => this.loaded)
     if (!this.loaded) {
       return
     }
 
+    //In case fetched altitude is not available (which means it will return 0), use saved altitude assuming the real altitude didn't change
+    const altitude =
+      (await this.fetchAltitude(coords.latitude, coords.longitude)) ||
+      this.data.currentAltitude
+
     const lastCoords = last(this.data.gpsHistory)
-    if (lastCoords) {
+    if (lastCoords && this.data.currentAltitude !== 0) {
       const coordinatesDistance = distanceBetweenEarthCoordinatesInKm(
         lastCoords.latitude,
         lastCoords.longitude,
         coords.latitude,
         coords.longitude,
       )
-      const altitudeDifferenceMeters = coords.altitude - lastCoords.altitude
+      /** Current altitude - previous altitude */
+      const altitudeDifferenceMeters = altitude - this.data.currentAltitude
+
+      this.data.currentSlope =
+        (Math.atan2(altitudeDifferenceMeters, coordinatesDistance * 1000) *
+          180) /
+        Math.PI
 
       if (altitudeDifferenceMeters > 0) {
         this.data.altitudeChange.up += altitudeDifferenceMeters
@@ -146,6 +189,7 @@ export class Progress extends ProgressEventEmitter {
         coords.timestamp - this.data.gpsHistory[0].timestamp
     }
     this.data.gpsHistory.push(coords)
+    this.data.currentAltitude = altitude
     this.emit('update', this.dataBase)
 
     this.synchronizeData.run(this.data)

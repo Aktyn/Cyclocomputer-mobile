@@ -19,6 +19,7 @@ export class CustomCanvas {
 
   constructor(width: number, height: number, channels = 4) {
     this.data = new Uint8Array(width * height * channels)
+    this.data.fill(0xff)
     this.width = width
     this.height = height
     this.channels = channels

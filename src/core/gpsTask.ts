@@ -16,9 +16,6 @@ TaskManager.defineTask(
       const location = locations[0]
 
       if (location) {
-        // Core.instantiateFromBackgroundTask()
-        //   .then((core) => core.gps.updateLocation(location))
-        //   .catch(() => undefined)
         Core.instance.gps.updateLocation(location)
       }
     }

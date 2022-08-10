@@ -47,7 +47,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   const [mapZoomText, setMapZoomText] = useState('')
 
   const selectTourFile = useCallback(() => {
-    if (!mounted) {
+    if (!mounted.current) {
       return
     }
     DocumentPicker.getDocumentAsync({

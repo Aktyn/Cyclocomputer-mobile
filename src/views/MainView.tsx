@@ -13,12 +13,12 @@ import { MapShapeType, LeafletView } from 'react-native-leaflet-view'
 import { FAB, Subheading, Text } from 'react-native-paper'
 import { CompassWidget } from '../components/CompassWidget'
 import { Core } from '../core'
+import { MapGeneratorV2, pixelRatio } from '../core/map/mapGeneratorV2'
 import { IncomingMessageType } from '../core/message'
 import { useGPS } from '../hooks/useGPS'
 import { useProgress } from '../hooks/useProgress'
 import { useTour } from '../hooks/useTour'
 import { useWeather } from '../hooks/useWeather'
-import { MapGeneratorV2, pixelRatio } from '../mapGeneratorV2'
 import { clamp, parseTime } from '../utils'
 import { SettingsDialog } from './settings/SettingsDialog'
 
@@ -180,13 +180,13 @@ export const MainView = () => {
         <View style={styles.statsChild}>
           <Subheading style={styles.label}>Altitude:&nbsp;</Subheading>
           <Subheading style={styles.value}>
-            {clamp(gps.coordinates.altitude, -10000, 10000).toFixed(1)}m
+            {clamp(progress.currentAltitude ?? 0, -10000, 10000).toFixed(1)}m
           </Subheading>
         </View>
         <View style={styles.statsChild}>
           <Subheading style={styles.label}>Slope:&nbsp;</Subheading>
           <Subheading style={styles.value}>
-            {gps.coordinates.slope.toFixed(1)}%
+            {progress.currentSlope.toFixed(1)}%
           </Subheading>
         </View>
         <View style={styles.statsChild}>

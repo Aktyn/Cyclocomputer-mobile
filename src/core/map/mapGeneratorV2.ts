@@ -1,72 +1,25 @@
-import { Buffer } from '@craftzdog/react-native-buffer'
-import type { DecodedPng } from 'fast-png'
-import { decode } from 'fast-png'
 import { PixelRatio } from 'react-native'
-import type { ClusteredTour } from './core/tour'
+import { convertLatLongToTile } from '../../utils'
+import type { ClusteredTour, TileKey } from '../tour'
 import { CustomCanvas } from './customCanvas'
-import { convertLatLongToTile } from './utils'
-
-const TILE_RESOLUTION = 256 //openstreetmap tile resolution
+import { Tile } from './tile'
 
 const scalar = 1e14
 export const pixelRatio = PixelRatio.getPixelSizeForLayoutSize(scalar) / scalar
 
 const positionCursorRadius = 5
 
-class Tile {
-  private image: DecodedPng | null = null
-
-  constructor(url: string) {
-    fetch(url, { method: 'GET' })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const reader = new FileReader()
-        reader.addEventListener('loadend', () => {
-          const byteData = Buffer.from(
-            (reader.result as string).substring(
-              'data:application/octet-stream;base64,'.length,
-            ),
-            'base64',
-          )
-
-          const image = decode(byteData.buffer)
-          if (
-            image.width !== TILE_RESOLUTION ||
-            image.height !== TILE_RESOLUTION
-          ) {
-            // eslint-disable-next-line no-console
-            console.error('Invalid tile resolution')
-            return
-          }
-          this.image = image
-        })
-        reader.readAsDataURL(blob)
-      })
-      .catch((error) =>
-        // eslint-disable-next-line no-console
-        console.error(
-          `Error: ${error instanceof Error ? error.message : error}`,
-        ),
-      )
-  }
-
-  get loaded() {
-    return !!this.image
-  }
-
-  getImage() {
-    return this.image
-  }
-}
+type GeoPoint = (ClusteredTour extends Map<string, infer P>
+  ? P
+  : Array<unknown>)[number]
 
 export class MapGeneratorV2 {
   static OUTPUT_RESOLUTION = 128
 
-  private static tilesCache = new Map<string, Tile>()
+  private static tilesCache = new Map<TileKey, Tile>()
 
   readonly zoom: number
 
-  //TODO: use Uint8Array
   private readonly canvas = new CustomCanvas(
     MapGeneratorV2.OUTPUT_RESOLUTION,
     MapGeneratorV2.OUTPUT_RESOLUTION,
@@ -74,26 +27,83 @@ export class MapGeneratorV2 {
   )
 
   constructor(zoom = 16) {
-    this.zoom = zoom
+    this.zoom = Math.round(zoom)
+
+    //Remove tiles cached with different zoom
+    for (const tileKey of MapGeneratorV2.tilesCache.keys()) {
+      if (MapGeneratorV2.tilesCache.get(tileKey)?.zoom !== this.zoom) {
+        MapGeneratorV2.tilesCache.delete(tileKey)
+      }
+    }
   }
 
-  getData() {
+  get data() {
     return this.canvas.data
   }
 
+  static preloadTourTiles(tour: ClusteredTour, zoom: number) {
+    const maxI = 2 ** zoom
+    for (const [tileKey, points] of tour) {
+      if (MapGeneratorV2.tilesCache.has(tileKey) || !points.length) {
+        continue
+      }
+
+      const x = Math.floor(points[0].tilePos.x) % maxI
+      const y = Math.floor(points[0].tilePos.y) % maxI
+
+      const tileURL = `http://stamen-tiles-c.a.ssl.fastly.net/toner/${zoom}/${x}/${y}.png`
+
+      const tile = new Tile(tileURL, zoom)
+      MapGeneratorV2.tilesCache.set(tileKey, tile)
+    }
+  }
+
   private fetchTile(x: number, y: number) {
-    const key = `${x}-${y}`
+    const key = `${Math.floor(x)}-${Math.floor(y)}` as const
     const tileCache = MapGeneratorV2.tilesCache.get(key)
-    if (tileCache) {
+    if (tileCache && tileCache.zoom === this.zoom) {
       return tileCache
     }
 
     const tileURL = `http://stamen-tiles-c.a.ssl.fastly.net/toner/${this.zoom}/${x}/${y}.png`
 
-    const tile = new Tile(tileURL)
+    const tile = new Tile(tileURL, this.zoom)
     MapGeneratorV2.tilesCache.set(key, tile)
 
     return tile
+  }
+
+  private drawTourPath(
+    tourPoints: GeoPoint[],
+    tilePosition: { x: number; y: number },
+  ) {
+    if (tourPoints.length > 1) {
+      tourPoints.sort((p1, p2) => p1.index - p2.index)
+      // console.log('tour points:', tourPoints.length)
+
+      this.canvas.toggleTextureFill(true)
+
+      let prev: [number, number] | null = null
+      for (const {
+        tilePos: { x: tourPointX, y: tourPointY },
+      } of tourPoints) {
+        const diffX = tourPointX - tilePosition.x
+        const diffY = tourPointY - tilePosition.y
+        // console.log(`{diffX: ${diffX}, diffY: ${diffY}, index: ${index}},`)
+
+        const point: [number, number] = [
+          this.canvas.width / 2 + diffX * Tile.RESOLUTION,
+          this.canvas.height / 2 + diffY * Tile.RESOLUTION,
+        ]
+
+        if (prev) {
+          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 3)
+        }
+
+        prev = point
+      }
+      this.canvas.toggleTextureFill(false)
+    }
   }
 
   private drawPointer() {
@@ -116,9 +126,6 @@ export class MapGeneratorV2 {
     this.canvas.setTranslation(0, (this.canvas.height / 2) * 0.618)
 
     const relevantKeys = new Set<string>()
-    type GeoPoint = (ClusteredTour extends Map<string, infer P>
-      ? P
-      : Array<unknown>)[number]
     const tourPoints: GeoPoint[] = []
 
     const maxI = 2 ** this.zoom
@@ -132,7 +139,7 @@ export class MapGeneratorV2 {
         const tileX = (x + xx) % maxI
         const tileY = (y + yy) % maxI
 
-        const key = `${tileX}-${tileY}` //NOTE: must match key format used in useTour
+        const key = `${tileX}-${tileY}` as const //NOTE: must match key format used in useTour
         relevantKeys.add(key)
         //Just preload edge images
         if (
@@ -170,43 +177,16 @@ export class MapGeneratorV2 {
       }
     }
 
-    if (tourPoints.length > 1) {
-      tourPoints.sort((p1, p2) => p1.index - p2.index)
-      // console.log('tour points:', tourPoints.length)
-
-      this.canvas.toggleTextureFill(true)
-
-      let prev: [number, number] | null = null
-      for (const {
-        tilePos: { x: tourPointX, y: tourPointY },
-      } of tourPoints) {
-        const diffX = tourPointX - tilePosition.x
-        const diffY = tourPointY - tilePosition.y
-        // console.log(`{diffX: ${diffX}, diffY: ${diffY}, index: ${index}},`)
-
-        const point: [number, number] = [
-          this.canvas.width / 2 + diffX * TILE_RESOLUTION,
-          this.canvas.height / 2 + diffY * TILE_RESOLUTION,
-        ]
-
-        if (prev) {
-          //TODO: try drawing path of textured circles (it may be faster)
-          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 3)
-        }
-
-        prev = point
-      }
-      this.canvas.toggleTextureFill(false)
-    }
-
+    this.drawTourPath(tourPoints, tilePosition)
     this.drawPointer()
 
-    //TODO: preload all tiles on tour and prevent from clearing them
     //Cleanup
     for (const key of MapGeneratorV2.tilesCache.keys()) {
-      if (!relevantKeys.has(key)) {
+      if (!relevantKeys.has(key) && !tour.has(key)) {
         MapGeneratorV2.tilesCache.delete(key)
       }
     }
+
+    // console.log('Cached tiles:', MapGeneratorV2.tilesCache.size)
   }
 }

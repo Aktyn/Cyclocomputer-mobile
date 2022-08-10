@@ -4,7 +4,7 @@ import type { StyleProp, TextStyle } from 'react-native'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Button, Title, List } from 'react-native-paper'
 import { useBluetooth } from '../hooks/useBluetooth'
-import useCancellablePromise from '../hooks/useCancellablePromise'
+import { useMounted } from '../hooks/useMounted'
 
 type ListIconProps = {
   color: string
@@ -20,7 +20,7 @@ const DeviceListIcon = (props: ListIconProps) => (
 )
 
 export const ScanningView = () => {
-  const cancellable = useCancellablePromise()
+  const mounted = useMounted()
   const {
     bluetoothEnabled,
     requestBluetoothEnable,
@@ -42,9 +42,14 @@ export const ScanningView = () => {
 
   const handleConnectToDevice = (device: typeof devices[number]) => {
     setConnecting(device.id)
-    cancellable(connectToDevice(device))
-      .then(() => setConnecting(''))
-      .catch((err) => !err && setConnecting(''))
+    connectToDevice(device)
+      .then(() => {
+        if (mounted.current) {
+          setConnecting('')
+        }
+        //TODO: save connected device to settings for next time to automatically connect to it
+      })
+      .catch(() => undefined)
   }
 
   return (

@@ -3,6 +3,7 @@ import type { AppStateStatus } from 'react-native'
 import { AppState } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 import { Core } from '../core'
+import { MessageType } from '../core/message'
 import { useBluetooth } from '../hooks/useBluetooth'
 import { DebugView } from './DebugView'
 import { MainView } from './MainView'
@@ -16,7 +17,7 @@ enum VIEW {
 
 export const ViewRouter = () => {
   const [view, setView] = useState(VIEW.SCANNING)
-  const [appStateVisible, setAppStateVisible] = useState(AppState.currentState)
+  const [appState, setAppState] = useState(AppState.currentState)
 
   const { connectedDevices } = useBluetooth()
 
@@ -44,7 +45,30 @@ export const ViewRouter = () => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       // eslint-disable-next-line no-console
       console.log('App state', nextAppState)
-      setAppStateVisible(nextAppState)
+      setAppState(nextAppState)
+
+      const isBackgroundState = !!nextAppState.match(/inactive|background/)
+      if (!Core.instance.running) {
+        return
+      }
+
+      const cyclocomputer = Core.instance.getCyclocomputer()
+      if (!cyclocomputer) {
+        return
+      }
+
+      Core.instance.bluetooth
+        .sendData(
+          cyclocomputer.id,
+          MessageType.SET_MOBILE_APP_STATE,
+          Uint8Array.from([isBackgroundState ? 1 : 0]).buffer,
+        )
+        .then((success) => {
+          if (!success) {
+            // eslint-disable-next-line no-console
+            console.error('Cannot send mobile app state')
+          }
+        })
     }
 
     const subscription = AppState.addEventListener(
@@ -57,7 +81,7 @@ export const ViewRouter = () => {
     }
   }, [])
 
-  const isBackgroundState = !!appStateVisible.match(/inactive|background/)
+  const isBackgroundState = !!appState.match(/inactive|background/)
 
   switch (view) {
     case VIEW.SCANNING:

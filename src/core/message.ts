@@ -10,6 +10,8 @@ export enum MessageType {
   SET_GPS_STATISTICS,
   SET_WEATHER_DATA,
   SET_PROGRESS_DATA,
+  /** Data: 1 - background state; 0 - foreground state (single byte data) */
+  SET_MOBILE_APP_STATE,
 }
 
 export enum IncomingMessageType {

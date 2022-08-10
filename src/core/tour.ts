@@ -17,12 +17,20 @@ interface GeoPoint {
   }
 }
 
-export type ClusteredTour = Map<string, GeoPoint[]>
+/** Indexed with tile key of format: `tileX-tileY` */
+export type TileKey = `${number}-${number}`
+export type ClusteredTour = Map<TileKey, GeoPoint[]>
 
 declare interface TourEventEmitter {
-  on(event: 'tourUpdate', listener: (tour: ClusteredTour) => void): this
-  off(event: 'tourUpdate', listener: (tour: ClusteredTour) => void): this
-  emit(event: 'tourUpdate', tour: ClusteredTour): boolean
+  on(
+    event: 'tourUpdate',
+    listener: (tour: ClusteredTour, zoom: number) => void,
+  ): this
+  off(
+    event: 'tourUpdate',
+    listener: (tour: ClusteredTour, zoom: number) => void,
+  ): this
+  emit(event: 'tourUpdate', tour: ClusteredTour, zoom: number): boolean
 }
 
 class TourEventEmitter extends EventEmitter {}
@@ -61,7 +69,7 @@ export class Tour extends TourEventEmitter {
       } else {
         if (!this.gpxFileUri) {
           this.tour = new Map()
-          this.emit('tourUpdate', this.tour)
+          this.emit('tourUpdate', this.tour, this.mapZoom)
           return
         }
         return fetch(this.gpxFileUri)
@@ -69,7 +77,7 @@ export class Tour extends TourEventEmitter {
           .then((content) => this.parseGpxContent(content))
           .catch((error) => {
             this.tour = new Map()
-            this.emit('tourUpdate', this.tour)
+            this.emit('tourUpdate', this.tour, this.mapZoom)
             // eslint-disable-next-line no-console
             console.error(
               error instanceof Error ? error.message : String(error),
@@ -112,13 +120,13 @@ export class Tour extends TourEventEmitter {
       const maxI = 2 ** this.mapZoom
       const tileKey = `${Math.floor(tilePos.x) % maxI}-${
         Math.floor(tilePos.y) % maxI
-      }`
+      }` as const
       const cluster = clusteredPoints.get(tileKey) ?? []
       cluster.push(point)
 
       clusteredPoints.set(tileKey, cluster)
     }
     this.tour = clusteredPoints
-    this.emit('tourUpdate', this.tour)
+    this.emit('tourUpdate', this.tour, this.mapZoom)
   }
 }
