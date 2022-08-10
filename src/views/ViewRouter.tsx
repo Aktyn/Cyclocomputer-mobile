@@ -36,8 +36,8 @@ export const ViewRouter = () => {
   useEffect(() => {
     DeviceInfo.isEmulator().then((emulator) => {
       if (emulator) {
-        setView(VIEW.DEBUG)
-        //! Core.instance.start().finally(() => setView(VIEW.MAIN))
+        // setView(VIEW.DEBUG)
+        Core.instance.start().finally(() => setView(VIEW.MAIN))
       }
     })
 

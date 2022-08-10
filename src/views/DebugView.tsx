@@ -62,7 +62,7 @@ export const DebugView = () => {
         Math.round((rotation * 180) / Math.PI),
         '°',
       )
-      setTimeout(update, 500)
+      setTimeout(update, 100)
     }
 
     update()

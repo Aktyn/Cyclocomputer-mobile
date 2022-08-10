@@ -121,6 +121,15 @@ export class CustomCanvas {
     centerX = Math.round(centerX + this.translation.x)
     centerY = Math.round(centerY + this.translation.y)
 
+    if (
+      centerX + radius < 0 ||
+      centerX - radius >= this.width ||
+      centerY + radius < 0 ||
+      centerY - radius >= this.height
+    ) {
+      return
+    }
+
     for (let y = centerY - radius; y <= centerY + radius; y++) {
       for (let x = centerX - radius; x <= centerX + radius; x++) {
         const distance = (centerX - x) ** 2 + (centerY - y) ** 2
@@ -131,50 +140,49 @@ export class CustomCanvas {
     }
   }
 
-  //TODO: find out more performant way to do this
   drawLine(x1: number, y1: number, x2: number, y2: number, thickness: number) {
     x1 += this.translation.x
     y1 += this.translation.y
     x2 += this.translation.x
     y2 += this.translation.y
 
-    // const [x1, y1] = this.rotateAroundCenter(xx1, yy1, false)
-    // ;[x2, y2] = this.rotateAroundCenter(x2, y2, false)
-
     const [px1Rot, py1Rot] = this.rotateAroundCenter(x1, y1)
     const [px2Rot, py2Rot] = this.rotateAroundCenter(x2, y2)
-    // this.drawLineBresenham(
-    //   Math.round(px1Rot),
-    //   Math.round(py1Rot),
-    //   Math.round(px2Rot),
-    //   Math.round(py2Rot),
-    // )
 
     x1 = Math.round(px1Rot)
     y1 = Math.round(py1Rot)
     x2 = Math.round(px2Rot)
     y2 = Math.round(py2Rot)
 
-    // x1 = Math.round(x1 + this.translation.x)
-    // y1 = Math.round(y1 + this.translation.y)
-    // x2 = Math.round(x2 + this.translation.x)
-    // y2 = Math.round(y2 + this.translation.y)
+    if (
+      (x1 < 0 && x2 < 0) ||
+      (x1 >= this.width && x2 >= this.width) ||
+      (y1 < 0 && y2 < 0) ||
+      (y1 >= this.height && y2 >= this.height)
+    ) {
+      return
+    }
 
-    // this.drawLineBresenham(x1, y1, x2, y2)
-    if ((y2 - y1) / (x2 - x1) < 1) {
-      const wy =
+    if (thickness <= 1) {
+      this.drawLineBresenham(x1, y1, x2, y2)
+    } else if (y2 - y1 < x2 - x1) {
+      const wy = Math.min(
+        thickness - 1,
         ((thickness - 1) *
           Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))) /
-        (2 * Math.abs(x2 - x1))
+          Math.max(1, 2 * Math.abs(x2 - x1)),
+      )
       for (let i = 0; i <= wy; i++) {
         this.drawLineBresenham(x1, y1 - i, x2, y2 - i)
         this.drawLineBresenham(x1, y1 + i, x2, y2 + i)
       }
     } else {
-      const wx =
+      const wx = Math.min(
+        thickness - 1,
         ((thickness - 1) *
           Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))) /
-        (2 * Math.abs(y2 - y1))
+          Math.max(1, 2 * Math.abs(y2 - y1)),
+      )
       for (let i = 0; i <= wx; i++) {
         this.drawLineBresenham(x1 - i, y1, x2 - i, y2)
         this.drawLineBresenham(x1 + i, y1, x2 + i, y2)

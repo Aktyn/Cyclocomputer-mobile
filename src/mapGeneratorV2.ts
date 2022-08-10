@@ -172,8 +172,7 @@ export class MapGeneratorV2 {
 
     if (tourPoints.length > 1) {
       tourPoints.sort((p1, p2) => p1.index - p2.index)
-      //TODO: draw tour line
-      console.log('tour points:', tourPoints.length)
+      // console.log('tour points:', tourPoints.length)
 
       this.canvas.toggleTextureFill(true)
 
@@ -191,7 +190,8 @@ export class MapGeneratorV2 {
         ]
 
         if (prev) {
-          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 5)
+          //TODO: try drawing path of textured circles (it may be faster)
+          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 3)
         }
 
         prev = point
@@ -201,6 +201,7 @@ export class MapGeneratorV2 {
 
     this.drawPointer()
 
+    //TODO: preload all tiles on tour and prevent from clearing them
     //Cleanup
     for (const key of MapGeneratorV2.tilesCache.keys()) {
       if (!relevantKeys.has(key)) {
