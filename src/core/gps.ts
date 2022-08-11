@@ -124,11 +124,10 @@ export class GPS extends GPSEventEmitter {
       'CYCLOCOMPUTER_BACKGROUND_LOCATION',
       {
         accuracy,
-        //TODO: restore
-        // timeInterval: gpsTimeInterval,
-        // deferredUpdatesInterval: gpsTimeInterval,
-        // distanceInterval: gpsDistanceSensitivity,
-        // deferredUpdatesDistance: gpsDistanceSensitivity,
+        timeInterval: gpsTimeInterval,
+        deferredUpdatesInterval: gpsTimeInterval,
+        distanceInterval: gpsDistanceSensitivity,
+        deferredUpdatesDistance: gpsDistanceSensitivity,
 
         showsBackgroundLocationIndicator: true,
         foregroundService: {
