@@ -76,6 +76,7 @@ export class Bluetooth extends BluetoothEventEmitter {
   private connectedDevices: BluetoothSerial.AndroidBluetoothDevice[] = []
   private rawDataBuffer = ''
   private isDataSendingBusy = false
+  private isConnectingToDevice = false
 
   private readonly bluetoothSerialSubscriptions: EmitterSubscription[] = []
   private readonly deviceDataReadIntervals = new Map<
@@ -333,16 +334,22 @@ export class Bluetooth extends BluetoothEventEmitter {
 
   async connectToDevice(deviceInfo: DeviceInfo) {
     try {
+      if (this.connectedDevices.find((d) => d.id === deviceInfo.id)) {
+        return true
+      }
+      this.isConnectingToDevice = true
       if (!deviceInfo.paired) {
         await BluetoothSerial.pairDevice(deviceInfo.id)
       }
 
       const device = BluetoothSerial.device(deviceInfo.id)
       await device.connect()
+      this.isConnectingToDevice = false
       return true
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(`Cannot connect to device ${deviceInfo.name}`)
+      this.isConnectingToDevice = false
       return false
     }
   }
@@ -352,7 +359,7 @@ export class Bluetooth extends BluetoothEventEmitter {
     type: MessageType,
     data: string | ArrayBuffer,
   ) {
-    //Prevent for simultaneous data sending
+    //Prevent from simultaneous data sending
     if (this.isDataSendingBusy) {
       await waitFor(() => this.isDataSendingBusy === false)
     }

@@ -7,7 +7,7 @@ import { Tile } from './tile'
 const scalar = 1e14
 export const pixelRatio = PixelRatio.getPixelSizeForLayoutSize(scalar) / scalar
 
-const positionCursorRadius = 5
+const positionCursorRadius = 6
 
 type GeoPoint = (ClusteredTour extends Map<string, infer P>
   ? P
@@ -97,7 +97,7 @@ export class MapGeneratorV2 {
         ]
 
         if (prev) {
-          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 3)
+          this.canvas.drawLine(prev[0], prev[1], point[0], point[1], 2)
         }
 
         prev = point
@@ -112,7 +112,7 @@ export class MapGeneratorV2 {
     this.canvas.setFillColor([0xff])
     this.canvas.drawCircle(64, 64, positionCursorRadius - 2)
     this.canvas.setFillColor([0x00])
-    this.canvas.drawCircle(64, 64, 1)
+    this.canvas.drawCircle(64, 64, 2)
   }
 
   update(

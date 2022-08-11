@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import Canvas, { ImageData } from 'react-native-canvas'
 import { Core } from '../core'
 import { MapGeneratorV2, pixelRatio } from '../core/map/mapGeneratorV2'
+import { setBulletproofTimeout } from '../utils'
 
 export const DebugView = () => {
   const canvasRef = useRef<Canvas>(null)
@@ -63,7 +64,7 @@ export const DebugView = () => {
         Math.round((rotation * 180) / Math.PI),
         '°',
       )
-      setTimeout(update, 100)
+      setBulletproofTimeout(update, 100)
     }
 
     update()

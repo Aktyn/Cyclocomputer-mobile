@@ -1,3 +1,5 @@
+import { AppState } from 'react-native'
+import BackgroundTimer from 'react-native-background-timer'
 import { diacriticsMap } from './consts'
 
 export * from './math'
@@ -64,8 +66,19 @@ export function removeDiacritics(str: string) {
   )
 }
 
+export const setBulletproofTimeout = (callback: () => void, delay: number) => {
+  const isBackgroundState = !!AppState.currentState.match(/inactive|background/)
+  if (isBackgroundState) {
+    BackgroundTimer.setTimeout(callback, delay)
+  } else {
+    setTimeout(callback, delay)
+  }
+}
+
 export const wait = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms))
+  new Promise<void>((resolve) => {
+    setBulletproofTimeout(resolve, ms)
+  })
 
 export const waitFor = async (
   condition: () => boolean,
@@ -117,7 +130,7 @@ export function debounce<FunctionType extends (...args: never[]) => void>(
 
       cancel()
       attempts++
-      timeout = setTimeout(() => {
+      timeout = setBulletproofTimeout(() => {
         timeout = null
         attempts = 0
         func(...args)

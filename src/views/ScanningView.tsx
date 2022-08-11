@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { blueGrey, cyan, lightGreen } from 'material-ui-colors'
 import type { StyleProp, TextStyle } from 'react-native'
@@ -6,7 +6,6 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { Button, Title, List } from 'react-native-paper'
 import { useBluetooth } from '../hooks/useBluetooth'
 import useCancellablePromise from '../hooks/useCancellablePromise'
-import { useMounted } from '../hooks/useMounted'
 
 type ListIconProps = {
   color: string
@@ -22,7 +21,8 @@ const DeviceListIcon = (props: ListIconProps) => (
 )
 
 export const ScanningView = () => {
-  const mounted = useMounted()
+  const mounted = useRef(true)
+  const autoConnectAttempt = useRef(false)
   const cancellable = useCancellablePromise()
 
   const {
@@ -38,6 +38,13 @@ export const ScanningView = () => {
   const [connecting, setConnecting] = useState('')
   const [enablingBluetooth, setEnablingBluetooth] = useState(false)
   const [cyclocomputerID, setCyclocomputerID] = useState<string | null>(null)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   // Automatically scan for devices
   useEffect(() => {
@@ -88,11 +95,30 @@ export const ScanningView = () => {
   )
 
   useEffect(() => {
+    if (
+      connecting ||
+      !mounted.current ||
+      connectedDevices.length > 0 ||
+      scanning ||
+      autoConnectAttempt.current
+    ) {
+      return
+    }
     const cyclocomputerDevice = devices.find(({ id }) => id === cyclocomputerID)
     if (cyclocomputerDevice) {
+      // eslint-disable-next-line no-console
+      console.log('Auto connecting to device:', cyclocomputerDevice.id)
+      autoConnectAttempt.current = true
       handleConnectToDevice(cyclocomputerDevice)
     }
-  }, [cyclocomputerID, devices, handleConnectToDevice])
+  }, [
+    connectedDevices.length,
+    connecting,
+    cyclocomputerID,
+    devices,
+    handleConnectToDevice,
+    scanning,
+  ])
 
   return (
     <View style={styles.container}>

@@ -1,3 +1,5 @@
+import { clamp } from '../../utils'
+
 export interface ImageLike {
   width: number
   height: number
@@ -166,23 +168,25 @@ export class CustomCanvas {
 
     if (thickness <= 1) {
       this.drawLineBresenham(x1, y1, x2, y2)
-    } else if (y2 - y1 < x2 - x1) {
-      const wy = Math.min(
-        thickness - 1,
+    } else if (Math.abs(y2 - y1) < Math.abs(x2 - x1)) {
+      const wy = clamp(
         ((thickness - 1) *
           Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))) /
           Math.max(1, 2 * Math.abs(x2 - x1)),
+        Math.round(thickness / 2),
+        thickness,
       )
       for (let i = 0; i <= wy; i++) {
         this.drawLineBresenham(x1, y1 - i, x2, y2 - i)
         this.drawLineBresenham(x1, y1 + i, x2, y2 + i)
       }
     } else {
-      const wx = Math.min(
-        thickness - 1,
+      const wx = clamp(
         ((thickness - 1) *
           Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))) /
           Math.max(1, 2 * Math.abs(y2 - y1)),
+        Math.round(thickness / 2),
+        thickness,
       )
       for (let i = 0; i <= wx; i++) {
         this.drawLineBresenham(x1 - i, y1, x2 - i, y2)

@@ -100,27 +100,9 @@ export class GPS extends GPSEventEmitter {
 
   /** Should be called only from TaskManager */
   updateLocation(location: LocationObject) {
-    // let slope = 0
-
-    // if (this.coordinates.altitude !== -Number.MAX_SAFE_INTEGER) {
-    //   const verticalDistance =
-    //     (location.coords.altitude ?? 0) - this.coordinates.altitude
-    //   const horizontalDistance =
-    //     distanceBetweenEarthCoordinatesInKm(
-    //       location.coords.latitude,
-    //       location.coords.longitude,
-    //       this.coordinates.latitude,
-    //       this.coordinates.longitude,
-    //     ) * 1000
-
-    //   slope = (Math.atan2(verticalDistance, horizontalDistance) * 180) / Math.PI
-    // }
-
     this.coordinates = {
       timestamp: location.timestamp,
-      // slope,
       heading: location.coords.heading ?? 0,
-      // altitude: location.coords.altitude ?? 0,
       speed: location.coords.speed ?? 0,
       ...pick(location.coords, 'latitude', 'longitude'),
     }
@@ -142,10 +124,11 @@ export class GPS extends GPSEventEmitter {
       'CYCLOCOMPUTER_BACKGROUND_LOCATION',
       {
         accuracy,
-        timeInterval: gpsTimeInterval,
-        deferredUpdatesInterval: gpsTimeInterval,
-        distanceInterval: gpsDistanceSensitivity,
-        deferredUpdatesDistance: gpsDistanceSensitivity,
+        //TODO: restore
+        // timeInterval: gpsTimeInterval,
+        // deferredUpdatesInterval: gpsTimeInterval,
+        // distanceInterval: gpsDistanceSensitivity,
+        // deferredUpdatesDistance: gpsDistanceSensitivity,
 
         showsBackgroundLocationIndicator: true,
         foregroundService: {

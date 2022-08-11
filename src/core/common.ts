@@ -97,7 +97,7 @@ export function parseImageDataV2(data: Uint8ClampedArray | Uint8Array) {
       // const g = data[i * 4 + 1]
       // const b = data[i * 4 + 2]
       const gray = data[i]
-      const tol = 16 //TODO: try different values and map zoom
+      const tol = 192 //TODO: put this in settings
 
       // const isRoadColor = roadColors.some(
       //   (color) => Math.abs(gray - color.gray) < tol,
