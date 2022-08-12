@@ -1,5 +1,5 @@
 import EventEmitter from 'events'
-import { removeDiacritics } from '../utils'
+import { removeDiacritics, wait } from '../utils'
 import { Bluetooth } from './bluetooth'
 import { parseImageDataV2 } from './common'
 import type { Coordinates } from './gps'
@@ -15,6 +15,7 @@ import type { WeatherSchema } from './weather'
 import { Weather } from './weather'
 
 const MAP_PREVIEW_SEND_FREQUENCY = 4000
+const PROGRESS_DATA_UPDATE_FREQUENCY = 1000 * 60 // 1 minute
 
 declare interface CoreEventEmitter {
   on(
@@ -206,6 +207,8 @@ export class Core extends CoreEventEmitter {
       this.progress.dataBase.currentAltitude,
       coords.heading,
       this.progress.dataBase.currentSlope,
+      0,
+      0,
     )
     this.handleWeatherUpdate(this.weather.getWeather())
   }
@@ -248,10 +251,12 @@ export class Core extends CoreEventEmitter {
       .catch(() => undefined)
   }
 
-  private sendGpsStatisticsUpdate(
+  private async sendGpsStatisticsUpdate(
     altitude: number,
     heading: number,
     slope: number,
+    turnDistance: number,
+    turnAngle: number,
   ) {
     if (
       this.gpsStatisticsStore.altitude === altitude &&
@@ -266,6 +271,18 @@ export class Core extends CoreEventEmitter {
       return
     }
 
+    if (this.progress.lastAltitudeFetchDuration < 200) {
+      const estimatedProgressUpdateDuration = Math.min(
+        200,
+        this.progress.lastAltitudeFetchDuration * 2,
+      )
+      console.log(
+        'Estimated progress update duration:',
+        estimatedProgressUpdateDuration,
+      )
+      await wait(estimatedProgressUpdateDuration)
+    }
+
     this.gpsStatisticsStore = {
       altitude,
       heading,
@@ -276,8 +293,15 @@ export class Core extends CoreEventEmitter {
       .sendData(
         cyclocomputer.id,
         MessageType.SET_GPS_STATISTICS,
-        new Uint8Array(Float32Array.from([altitude, slope, heading]).buffer)
-          .buffer,
+        new Uint8Array(
+          Float32Array.from([
+            altitude,
+            slope,
+            heading,
+            turnDistance,
+            turnAngle,
+          ]).buffer,
+        ).buffer,
       )
       .then((success) => {
         if (!success) {
@@ -334,17 +358,38 @@ export class Core extends CoreEventEmitter {
       return
     }
 
+    // const start = performance.now()
+    const directions = this.tour.generateDrivingDirections(coords)
+    // if (directions) {
+    //   if (directions.turnAngle >= Math.PI || directions.turnAngle <= -Math.PI) {
+    //     console.log('Make U-turn')
+    //   } else {
+    //     console.log(
+    //       `Distance to next turn: ${Math.round(
+    //         directions.distance,
+    //       )} meters\nTurn angle: ${Math.round(
+    //         (directions.turnAngle * 180) / Math.PI,
+    //       )}°\n\tGenerating driving directions took ${
+    //         performance.now() - start
+    //       }ms`,
+    //     )
+    //   }
+    // }
     this.weather.updateWeather(coords).catch(() => undefined)
     this.progress.updateProgress(coords).catch(() => undefined)
-    if (Date.now() - this.lastProgressDataSendTimestamp > 1000 * 60 * 2) {
+    if (
+      Date.now() - this.lastProgressDataSendTimestamp >
+      PROGRESS_DATA_UPDATE_FREQUENCY
+    ) {
       this.sendProgressData()
     }
-    // this.sendGpsStatisticsUpdate(coords.altitude, coords.heading, coords.slope)
     this.sendGpsStatisticsUpdate(
       this.progress.dataBase.currentAltitude,
       coords.heading,
       this.progress.dataBase.currentSlope,
-    )
+      directions?.distance ?? 0,
+      directions?.turnAngle ?? 0,
+    ).catch(() => undefined)
 
     if (this.updateInfo.updating) {
       this.updateInfo.pendingUpdate = coords

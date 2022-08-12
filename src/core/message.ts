@@ -7,6 +7,7 @@ export const STAMP = Buffer.from('mgdlnkczmr', 'ascii')
 export enum MessageType {
   SET_CIRCUMFERENCE = 1,
   SET_MAP_PREVIEW,
+  /** Data (all floats): altitude, slope, heading, turnDistance, turnAngle */
   SET_GPS_STATISTICS,
   SET_WEATHER_DATA,
   SET_PROGRESS_DATA,

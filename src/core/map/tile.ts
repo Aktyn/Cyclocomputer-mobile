@@ -11,8 +11,7 @@ export class Tile {
   constructor(url: string, zoom: number) {
     this.zoom = zoom
 
-    // eslint-disable-next-line no-console
-    console.log(`Loading tile: ${url}`)
+    // console.log(`Loading tile: ${url}`)
 
     fetch(url, { method: 'GET' })
       .then((res) => res.blob())

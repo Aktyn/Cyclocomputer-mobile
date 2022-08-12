@@ -1,8 +1,18 @@
+import { Buffer } from '@craftzdog/react-native-buffer'
+import { decode } from 'fast-png'
 import { PixelRatio } from 'react-native'
 import { convertLatLongToTile } from '../../utils'
 import type { ClusteredTour, TileKey } from '../tour'
 import { CustomCanvas } from './customCanvas'
 import { Tile } from './tile'
+
+const compassImageData = `iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAQAAABKfvVzAAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAA
+LiMAAC4jAXilP3YAAACwSURBVDjLtZTBDoIwEETfNEFOyv9/pxcTEsbDFmmhokSkF7Z0580OBJlj
+V+KcBln+JyHU24yzZjD+vmGx0jL1uyWZbMdNRoPQ7xJWEjKIaa6CpA+Eqcjqixn6I0PL8MjbtzeD
+rwhXQAhzJ6G8s3mnsTAe3bkzjvpiPJpcxyp4sle5zJmpSOplafA2RgtCZNh+LnFTZx6WU/WkGnp7
+nMpO0SC3jy9Cs5W0p95i6+hv5gk5Qk5QgCRE3QAAAABJRU5ErkJggg==`
+
+const compassImage = decode(Buffer.from(compassImageData, 'base64').buffer)
 
 const scalar = 1e14
 export const pixelRatio = PixelRatio.getPixelSizeForLayoutSize(scalar) / scalar
@@ -122,6 +132,7 @@ export class MapGeneratorV2 {
     tour: ClusteredTour,
   ) {
     const tilePosition = convertLatLongToTile(latitude, longitude, this.zoom)
+    this.canvas.setCenter(this.canvas.width / 2, this.canvas.height / 2)
     this.canvas.setRotation(rotation)
     this.canvas.setTranslation(0, (this.canvas.height / 2) * 0.618)
 
@@ -179,6 +190,11 @@ export class MapGeneratorV2 {
 
     this.drawTourPath(tourPoints, tilePosition)
     this.drawPointer()
+
+    this.canvas.setRotation(-rotation)
+    this.canvas.setTranslation(0, 0)
+    this.canvas.setCenter(compassImage.width / 2, compassImage.height / 2)
+    this.canvas.drawImage(compassImage, 0, 0)
 
     //Cleanup
     for (const key of MapGeneratorV2.tilesCache.keys()) {

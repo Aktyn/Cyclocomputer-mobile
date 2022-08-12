@@ -1,4 +1,4 @@
-import { clamp } from '../../utils'
+import { clamp, mix } from '../../utils'
 
 export interface ImageLike {
   width: number
@@ -15,6 +15,7 @@ export class CustomCanvas {
   private readonly channels: number
 
   private rotation = 0
+  private center = { x: 0, y: 0 }
   private translation = { x: 0, y: 0 }
   private fillColor: number[]
   private textureFill = false
@@ -30,6 +31,11 @@ export class CustomCanvas {
 
   setRotation(radians: number) {
     this.rotation = radians
+  }
+
+  setCenter(x: number, y: number) {
+    this.center.x = x
+    this.center.y = y
   }
 
   setTranslation(x: number, y: number) {
@@ -57,8 +63,8 @@ export class CustomCanvas {
       return [x, y]
     }
 
-    const centerX = this.width / 2 + this.translation.x
-    const centerY = this.height / 2 + this.translation.y
+    const centerX = this.center.x + this.translation.x
+    const centerY = this.center.y + this.translation.y
 
     const relativeX = x - centerX
     const relativeY = y - centerY
@@ -113,8 +119,18 @@ export class CustomCanvas {
         const tileImageIndex = (imageX + imageY * image.width) * image.channels
 
         for (let i = 0; i < this.channels; i++) {
-          this.data[index + i] =
-            i < image.channels ? image.data[tileImageIndex + i] : 255
+          if (image.channels === 2 || image.channels === 4) {
+            const alpha = image.data[tileImageIndex + image.channels - 1]
+            this.data[index + i] =
+              mix(
+                this.data[index + i],
+                i < image.channels ? image.data[tileImageIndex + i] : 255,
+                alpha / 255,
+              ) | 0
+          } else {
+            this.data[index + i] =
+              i < image.channels ? image.data[tileImageIndex + i] : 255
+          }
         }
       }
     }

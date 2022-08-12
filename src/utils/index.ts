@@ -143,6 +143,9 @@ export function debounce<FunctionType extends (...args: never[]) => void>(
 export const last = <T>(array: T[], rightOffset = 0): T | undefined =>
   array[array.length - 1 - rightOffset]
 
+export const mix = (val1: number, val2: number, mixFactor: number) =>
+  (1 - mixFactor) * val1 + mixFactor * val2
+
 interface ParseTimestampOptions {
   noDateSymbol: string
   onlyDate: boolean

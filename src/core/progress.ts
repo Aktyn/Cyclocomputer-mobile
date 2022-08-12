@@ -45,6 +45,7 @@ class ProgressEventEmitter extends EventEmitter {}
 export class Progress extends ProgressEventEmitter {
   private data = getEmptyProgressData()
   private loaded = false
+  lastAltitudeFetchDuration = 0
 
   private synchronizeData = debounce(
     (data: ProgressData) => {
@@ -152,9 +153,11 @@ export class Progress extends ProgressEventEmitter {
     }
 
     //In case fetched altitude is not available (which means it will return 0), use saved altitude assuming the real altitude didn't change
+    const start = Date.now()
     const altitude =
       (await this.fetchAltitude(coords.latitude, coords.longitude)) ||
       this.data.currentAltitude
+    this.lastAltitudeFetchDuration = Date.now() - start
 
     const lastCoords = last(this.data.gpsHistory)
     if (lastCoords && this.data.currentAltitude !== 0) {

@@ -37,3 +37,31 @@ export function convertLatLongToTile(
     y: ((1.0 - Math.asinh(Math.tan(lat_rad)) / Math.PI) / 2.0) * n,
   }
 }
+
+export function dotProduct(
+  vector1: readonly [number, number],
+  vector2: readonly [number, number],
+) {
+  return vector1[0] * vector2[0] + vector1[1] * vector2[1]
+}
+
+export function vectorLength(vector: readonly [number, number]) {
+  return Math.sqrt(vector[0] ** 2 + vector[1] ** 2)
+}
+
+export function normalizeVector(
+  vector: readonly [number, number],
+): [number, number] {
+  const length = vectorLength(vector)
+  return [vector[0] / length, vector[1] / length]
+}
+
+export function rotateVector(
+  vector: readonly [number, number],
+  angle: number,
+): [number, number] {
+  return [
+    vector[0] * Math.cos(angle) - vector[1] * Math.sin(angle),
+    vector[0] * Math.sin(angle) + vector[1] * Math.cos(angle),
+  ]
+}
