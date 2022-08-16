@@ -17,6 +17,7 @@ import { MapGeneratorV2, pixelRatio } from '../core/map/mapGeneratorV2'
 import { IncomingMessageType } from '../core/message'
 import { useGPS } from '../hooks/useGPS'
 import { useProgress } from '../hooks/useProgress'
+import { useSettings } from '../hooks/useSettings'
 import { useTour } from '../hooks/useTour'
 import { useWeather } from '../hooks/useWeather'
 import { clamp, parseTime } from '../utils'
@@ -31,6 +32,7 @@ export const MainView = () => {
   const tour = useTour()
   const weather = useWeather()
   const progress = useProgress()
+  const { settings } = useSettings()
 
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const [speed, setSpeed] = useState(0)
@@ -68,8 +70,9 @@ export const MainView = () => {
     const handleMapUpdate = (greyScaleData: Uint8Array | Uint8ClampedArray) => {
       const data = new Array(greyScaleData.length * 4)
       for (let i = 0; i < greyScaleData.length; i++) {
+        const color = greyScaleData[i] < settings.grayscaleTolerance ? 0 : 255
         for (let j = 0; j < 3; j++) {
-          data[i * 4 + j] = greyScaleData[i]
+          data[i * 4 + j] = color
         }
         data[i * 4 + 3] = 255
       }
@@ -87,7 +90,7 @@ export const MainView = () => {
     return () => {
       Core.instance.off('mapUpdate', handleMapUpdate)
     }
-  }, [])
+  }, [settings.grayscaleTolerance])
 
   const latLng = useMemo<LatLng>(
     () => ({

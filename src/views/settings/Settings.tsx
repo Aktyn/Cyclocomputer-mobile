@@ -14,7 +14,7 @@ import {
 import { Core } from '../../core'
 import type { SettingsSchema } from '../../core/settings'
 import { useMounted } from '../../hooks/useMounted'
-import { float, int } from '../../utils'
+import { clamp, float, int } from '../../utils'
 
 const accuracies = [
   { label: 'Lowest', value: LocationAccuracy.Lowest },
@@ -45,6 +45,7 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   const [gpsDistanceSensitivityText, setGpsDistanceSensitivityText] =
     useState('')
   const [mapZoomText, setMapZoomText] = useState('')
+  const [grayscaleToleranceText, setGrayscaleToleranceText] = useState('')
 
   const selectTourFile = useCallback(() => {
     if (!mounted.current) {
@@ -82,6 +83,9 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   useEffect(() => {
     setMapZoomText(settings.mapZoom.toString())
   }, [settings.mapZoom])
+  useEffect(() => {
+    setGrayscaleToleranceText(settings.grayscaleTolerance.toString())
+  }, [settings.grayscaleTolerance])
 
   const handleFloatValueUpdate = useCallback(
     (textValue: string, settingKey: keyof SettingsSchema) => {
@@ -95,12 +99,17 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
   )
 
   const handleIntegerValueUpdate = useCallback(
-    (text: string, settingsKey: keyof SettingsSchema) => {
+    (
+      text: string,
+      settingsKey: keyof SettingsSchema,
+      min = Number.MIN_SAFE_INTEGER,
+      max = Number.MAX_SAFE_INTEGER,
+    ) => {
       const value = int(text.replace(/[^\d]/g, ''))
       if (isNaN(value)) {
         return
       }
-      setSetting(settingsKey, value)
+      setSetting(settingsKey, clamp(value, min, max))
     },
     [setSetting],
   )
@@ -151,7 +160,27 @@ export const Settings = ({ settings, setSetting }: SettingsProps) => {
           onChangeText={(value) =>
             setMapZoomText(removeNonNumericCharacters(value))
           }
-          onBlur={() => handleIntegerValueUpdate(mapZoomText, 'mapZoom')}
+          onBlur={() => handleIntegerValueUpdate(mapZoomText, 'mapZoom', 0, 20)}
+        />
+        <TextInput
+          style={textInputStyle}
+          label="Grayscale tolerance"
+          value={grayscaleToleranceText}
+          mode="outlined"
+          left={<TextInput.Icon name="image-filter-black-white" />}
+          maxLength={3}
+          keyboardType="numeric"
+          onChangeText={(value) =>
+            setGrayscaleToleranceText(removeNonNumericCharacters(value))
+          }
+          onBlur={() =>
+            handleIntegerValueUpdate(
+              grayscaleToleranceText,
+              'grayscaleTolerance',
+              0,
+              256,
+            )
+          }
         />
       </View>
       <Divider style={styles.divider} />

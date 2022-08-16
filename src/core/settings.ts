@@ -8,6 +8,7 @@ const defaultSettings = {
   circumference: 223,
   gpxFile: null as null | (DocumentResult & { type: 'success' }),
   mapZoom: 16,
+  grayscaleTolerance: 192,
   gpsAccuracy: LocationAccuracy.Highest,
   /** Minimum time to wait between each update in milliseconds. Default value may depend on accuracy option. */
   gpsTimeInterval: 4000,

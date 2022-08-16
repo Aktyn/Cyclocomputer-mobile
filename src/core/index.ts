@@ -276,10 +276,6 @@ export class Core extends CoreEventEmitter {
         200,
         this.progress.lastAltitudeFetchDuration * 2,
       )
-      console.log(
-        'Estimated progress update duration:',
-        estimatedProgressUpdateDuration,
-      )
       await wait(estimatedProgressUpdateDuration)
     }
 
@@ -438,7 +434,10 @@ export class Core extends CoreEventEmitter {
 
   private async sendMapPreview(imageData: Uint8ClampedArray | Uint8Array) {
     try {
-      const parsedData = parseImageDataV2(imageData)
+      const parsedData = parseImageDataV2(
+        imageData,
+        this.settings.getSettings().grayscaleTolerance,
+      )
       if (Date.now() - this.lastMapPreviewSend < MAP_PREVIEW_SEND_FREQUENCY) {
         return
       }

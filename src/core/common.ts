@@ -62,7 +62,10 @@ export function requestBackgroundLocationPermissions() {
 }
 
 /** @param data Grayscale image data */
-export function parseImageDataV2(data: Uint8ClampedArray | Uint8Array) {
+export function parseImageDataV2(
+  data: Uint8ClampedArray | Uint8Array,
+  grayscaleTolerance: number,
+) {
   if (data.length !== MapGeneratorV2.OUTPUT_RESOLUTION ** 2) {
     throw new Error(`Invalid image data length: ${data.length}`)
   }
@@ -79,42 +82,15 @@ export function parseImageDataV2(data: Uint8ClampedArray | Uint8Array) {
   )
   monoHLSB.set(imageDataPrefix, 0)
 
-  // const roadColors = [
-  //   // Black
-  //   { gray: 0x00 },
-  // ]
-
-  // const routeColors = [
-  //   // Cyan
-  //   { r: 0x55, g: 0xff, b: 0xff },
-  // ]
-
   for (let y = 0; y < MapGeneratorV2.OUTPUT_RESOLUTION; y++) {
     for (let x = 0; x < MapGeneratorV2.OUTPUT_RESOLUTION; x++) {
       const i = y * MapGeneratorV2.OUTPUT_RESOLUTION + x
 
-      // const r = data[i * 4 + 0]
-      // const g = data[i * 4 + 1]
-      // const b = data[i * 4 + 2]
       const gray = data[i]
-      const tol = 192 //TODO: put this in settings
+      const tol = grayscaleTolerance
 
-      // const isRoadColor = roadColors.some(
-      //   (color) => Math.abs(gray - color.gray) < tol,
-      // )
-      // const isRouteColor = routeColors.some(
-      //   (color) =>
-      //     Math.abs(r - color.r) < tol &&
-      //     Math.abs(g - color.g) < tol &&
-      //     Math.abs(b - color.b) < tol,
-      // )
-
-      // const v = isRouteColor ? (y + (x % 2)) % 2 : isRoadColor ? 0 : 1
       const v = gray < tol ? 0 : 1
 
-      // monoHLSB[
-      //   (((pixelsCount - 1 - i) / 8) | 0) + imageDataPrefix.byteLength
-      // ] |= v << i % 8
       monoHLSB[
         (((pixelsCount - 1 - i) / 8) | 0) + imageDataPrefix.byteLength
       ] |= v << i % 8
@@ -124,75 +100,3 @@ export function parseImageDataV2(data: Uint8ClampedArray | Uint8Array) {
   monoHLSB.set(imageDataSuffix, monoHLSB.length - imageDataSuffix.byteLength)
   return monoHLSB
 }
-
-// export function parseImageData(data: Uint8ClampedArray) {
-//   const pixelsCount =
-//     MapGenerator.OUTPUT_RESOLUTION * MapGenerator.OUTPUT_RESOLUTION
-
-//   if (pixelsCount % 8 !== 0) {
-//     throw new Error('pixelsCount must be divisible by 8')
-//   }
-
-//   const monoHLSB = new Uint8Array(
-//     ((pixelsCount / 8) | 0) +
-//       imageDataPrefix.byteLength +
-//       imageDataSuffix.byteLength,
-//   )
-//   monoHLSB.set(imageDataPrefix, 0)
-
-//   const roadColors = [
-//     // // White
-//     // { r: 255, g: 255, b: 255 },
-
-//     // // Yellow
-//     // { r: 0xf7, g: 0xf9, b: 0xc0 },
-
-//     // // Orange
-//     // { r: 0xfc, g: 0xd6, b: 0xa4 },
-
-//     // Black
-//     { r: 0x00, g: 0x00, b: 0x00 },
-
-//     // Grey
-//     // { r: 0x74, g: 0x74, b: 0x74 }, //Needs tolerance value at about 64
-//   ]
-
-//   const routeColors = [
-//     // Cyan
-//     { r: 0x55, g: 0xff, b: 0xff },
-//   ]
-
-//   for (let y = 0; y < MapGenerator.OUTPUT_RESOLUTION; y++) {
-//     for (let x = 0; x < MapGenerator.OUTPUT_RESOLUTION; x++) {
-//       const i = y * MapGenerator.OUTPUT_RESOLUTION + x
-
-//       const r = data[i * 4 + 0]
-//       const g = data[i * 4 + 1]
-//       const b = data[i * 4 + 2]
-//       const tol = 16
-
-//       const isRoadColor = roadColors.some(
-//         (color) =>
-//           Math.abs(r - color.r) < tol &&
-//           Math.abs(g - color.g) < tol &&
-//           Math.abs(b - color.b) < tol,
-//       )
-//       const isRouteColor = routeColors.some(
-//         (color) =>
-//           Math.abs(r - color.r) < tol &&
-//           Math.abs(g - color.g) < tol &&
-//           Math.abs(b - color.b) < tol,
-//       )
-
-//       const v = isRouteColor ? (y + (x % 2)) % 2 : isRoadColor ? 0 : 1
-
-//       monoHLSB[
-//         (((pixelsCount - 1 - i) / 8) | 0) + imageDataPrefix.byteLength
-//       ] |= v << i % 8
-//     }
-//   }
-
-//   monoHLSB.set(imageDataSuffix, monoHLSB.length - imageDataSuffix.byteLength)
-
-//   return monoHLSB
-// }
