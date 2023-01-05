@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Accuracy, startLocationUpdatesAsync } from 'expo-location'
 import { StatusBar } from 'expo-status-bar'
 import {
   LogBox,
@@ -16,6 +17,8 @@ import {
   Text,
 } from 'react-native-paper'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { LOCATION_TASK_NAME } from './src/backgroundTasks/locationBackgroundTask'
+import { requestLocationPermissions } from './src/permissions'
 import { SnackbarProvider } from './src/snackbar/Snackbar'
 import { darkTheme } from './src/themes/darkTheme'
 
@@ -44,6 +47,16 @@ export default function App() {
       : { ...DefaultTheme, fonts }
   }, [colorScheme])
 
+  const test = async () => {
+    const hasPermissions = await requestLocationPermissions()
+    console.log('hasPermissions:', hasPermissions)
+    if (hasPermissions) {
+      await startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy: Accuracy.BestForNavigation,
+      })
+    }
+  }
+
   return (
     <PaperProvider theme={theme}>
       <SnackbarProvider>
@@ -51,11 +64,7 @@ export default function App() {
           <StatusBar style="auto" />
           <View>
             <Text variant="bodyMedium">Hello world!</Text>
-            <Button
-              icon="camera"
-              mode="contained"
-              onPress={() => console.log('Pressed')}
-            >
+            <Button icon="camera" mode="contained" onPress={test}>
               Press me
             </Button>
           </View>
