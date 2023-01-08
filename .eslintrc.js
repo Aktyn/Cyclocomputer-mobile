@@ -123,7 +123,7 @@ module.exports = {
     'react/jsx-wrap-multilines': [0],
     'react/prop-types': [0],
     'react/react-in-jsx-scope': 'off',
-    'no-console': 'warn',
+    'no-console': ['error', { allow: ['warn', 'error'] }],
     'react-native/no-inline-styles': 'off',
     'no-bitwise': 'off',
   },
