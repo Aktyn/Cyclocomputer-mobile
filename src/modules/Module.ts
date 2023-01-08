@@ -63,11 +63,15 @@ type TypeEventEmitter<T, EventNames extends string | symbol> = Omit<
   TypeAggregation<EventNames> &
   T
 
-export abstract class Module<Blueprints extends Array<EmitterBlueprint>> {
-  public emitter = new EventEmitter() as unknown as TypeEventEmitter<
+type TypedEmitterFromBlueprints<Blueprints extends Array<EmitterBlueprint>> =
+  TypeEventEmitter<
     UnionToIntersection<UnfoldArray<EmitterFactory<Blueprints, EventEmitter>>>,
     FirstArgument<Blueprints[number]>
   >
+
+export abstract class Module<Blueprints extends Array<EmitterBlueprint>> {
+  public emitter =
+    new EventEmitter() as unknown as TypedEmitterFromBlueprints<Blueprints>
 
   /** Helper property for types inference */
   public __blueprint: Blueprints
