@@ -10,7 +10,7 @@ import { ErrorAlert } from '../components/ErrorAlert'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useModuleEvent } from '../hooks/useModuleEvent'
 import { locationModule } from '../modules/location'
-import { metersPerSecondToKilometersPerHour } from '../utils'
+import { errorMessage, metersPerSecondToKilometersPerHour } from '../utils'
 
 const defaultZoom = 16
 
@@ -22,14 +22,14 @@ export const RouteView = () => {
     lng: 19.427908,
   })
   const [zoom, setZoom] = useState(defaultZoom)
-  const [error, _setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // cancellable(locationModule.startMonitoring()).then((errorCode) => {
-    //   if (errorCode) {
-    //     setError(errorMessage.get(errorCode))
-    //   }
-    // })
+    cancellable(locationModule.startMonitoring()).then((errorCode) => {
+      if (errorCode) {
+        setError(errorMessage.get(errorCode))
+      }
+    })
   }, [cancellable])
 
   useModuleEvent(locationModule, 'locationUpdate', (location) => {

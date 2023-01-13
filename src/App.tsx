@@ -20,10 +20,10 @@ import {
   Provider as PaperProvider,
 } from 'react-native-paper'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import './modules/location/locationBackgroundTask'
 import { SnackbarProvider } from './snackbar/Snackbar'
 import { darkTheme } from './themes/darkTheme'
-import { RouteView } from './views/RouteView'
-import './modules/location/locationBackgroundTask'
+import { Root } from './views/Root'
 
 LogBox.ignoreAllLogs()
 
@@ -40,7 +40,7 @@ const fontConfig = {
   },
 }
 
-export default function App() {
+const App = () => {
   const colorScheme = useColorScheme()
 
   const [appIsReady, setAppIsReady] = useState(false)
@@ -81,12 +81,13 @@ export default function App() {
       <SnackbarProvider>
         <SafeAreaView style={styles.container}>
           <StatusBar style="auto" />
-          <RouteView />
+          <Root />
         </SafeAreaView>
       </SnackbarProvider>
     </PaperProvider>
   )
 }
+export default App
 
 const styles = StyleSheet.create({
   container: {

@@ -15,33 +15,41 @@ class LocationModule extends Module<
   [(name: 'locationUpdate', location: LocationObject) => void]
 > {
   public async startMonitoring(): SafePromise {
+    const gpsAccuracy = Accuracy.BestForNavigation
+    const gpsTimeInterval = 500
+    const gpsDistanceSensitivity = 5
+
     const errorCode = await requestLocationPermissions()
-    if (errorCode === ErrorCode.NoError) {
-      try {
-        if (await hasStartedLocationUpdatesAsync(Config.locationTaskName)) {
-          await stopLocationUpdatesAsync(Config.locationTaskName)
-        }
-      } catch (error) {
-        console.error(error)
-      }
-      try {
-        await startLocationUpdatesAsync(Config.locationTaskName, {
-          accuracy: Accuracy.BestForNavigation,
-          showsBackgroundLocationIndicator: true,
-          deferredUpdatesDistance: 5,
-          deferredUpdatesInterval: 1000,
-          foregroundService: {
-            notificationTitle: 'Location tracking',
-            notificationBody: 'Location is being tracked in the background',
-            killServiceOnDestroy: true,
-          },
-        })
-      } catch (error) {
-        console.error(error)
-        return ErrorCode.CannotStartBackgroundLocationUpdates
-      }
+    if (errorCode !== ErrorCode.NoError) {
+      return errorCode
     }
-    return errorCode
+    try {
+      if (await hasStartedLocationUpdatesAsync(Config.locationTaskName)) {
+        await stopLocationUpdatesAsync(Config.locationTaskName)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+    try {
+      await startLocationUpdatesAsync(Config.locationTaskName, {
+        accuracy: gpsAccuracy,
+        timeInterval: gpsTimeInterval,
+        deferredUpdatesInterval: gpsTimeInterval,
+        distanceInterval: gpsDistanceSensitivity,
+        deferredUpdatesDistance: gpsDistanceSensitivity,
+        showsBackgroundLocationIndicator: true,
+        foregroundService: {
+          notificationTitle: 'Cyclocomputer',
+          notificationBody: 'Location is being tracked in the background',
+          // killServiceOnDestroy: true,
+        },
+      })
+    } catch (error) {
+      console.error(error)
+      return ErrorCode.CannotStartBackgroundLocationUpdates
+    }
+
+    return ErrorCode.NoError
   }
 
   /**  This method should only be called from the background task */

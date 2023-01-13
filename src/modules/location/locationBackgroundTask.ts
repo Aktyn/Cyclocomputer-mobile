@@ -14,14 +14,14 @@ TaskManager.defineTask(Config.locationTaskName, ({ data, error }) => {
   if (data) {
     const { locations } = data as { locations: LocationObject[] }
 
-    // if (Array.isArray(locations)) {
-    //   locations.forEach(locationModule.updateLocation)
-    // }
-
-    const location = locations[0]
-
-    if (location) {
-      locationModule.updateLocation(location)
+    if (Array.isArray(locations)) {
+      locations.forEach((location) => locationModule.updateLocation(location))
     }
+
+    // const location = locations[0]
+
+    // if (location) {
+    //   locationModule.updateLocation(location)
+    // }
   }
 })
