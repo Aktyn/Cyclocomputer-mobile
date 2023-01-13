@@ -20,7 +20,6 @@ import {
   Provider as PaperProvider,
 } from 'react-native-paper'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import './modules/location/locationBackgroundTask'
 import { SnackbarProvider } from './snackbar/Snackbar'
 import { darkTheme } from './themes/darkTheme'
 import { Root } from './views/Root'

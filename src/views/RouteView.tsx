@@ -10,7 +10,7 @@ import { ErrorAlert } from '../components/ErrorAlert'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useModuleEvent } from '../hooks/useModuleEvent'
 import { locationModule } from '../modules/location'
-import { errorMessage, metersPerSecondToKilometersPerHour } from '../utils'
+import { errorMessage } from '../utils'
 
 const defaultZoom = 16
 
@@ -33,13 +33,13 @@ export const RouteView = () => {
   }, [cancellable])
 
   useModuleEvent(locationModule, 'locationUpdate', (location) => {
-    // eslint-disable-next-line no-console
-    console.log(
-      'locationUpdate:',
-      location.coords.latitude,
-      location.coords.longitude,
-      metersPerSecondToKilometersPerHour(location.coords.speed),
-    )
+    // // eslint-disable-next-line no-console
+    // console.log(
+    //   'locationUpdate:',
+    //   location.coords.latitude,
+    //   location.coords.longitude,
+    //   metersPerSecondToKilometersPerHour(location.coords.speed),
+    // )
     setCoords({
       lat: location.coords.latitude,
       lng: location.coords.longitude,

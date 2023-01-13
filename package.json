@@ -1,6 +1,7 @@
 {
   "name": "cyclocomputer-mobile",
   "version": "2.0.0",
+  "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -8,8 +9,6 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:android": "eas build -p android --profile production",
-    "build:android:expo": "expo build:android -t apk",
-    "build:ios": "expo build:ios -t archive",
     "lint": "eslint --ext .js,.ts,.tsx src --fix",
     "lint:check": "eslint --ext .js,.ts,.tsx src",
     "format": "prettier --write src/**/*{.ts,.tsx}",
@@ -52,8 +51,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-native": "^4.0.0",
     "events": "^3.3.0",
+    "expo-updates": "^0.15.6",
     "prettier": "^2.8.2",
     "react-native-svg-transformer": "^1.0.0"
-  },
-  "private": true
+  }
 }
