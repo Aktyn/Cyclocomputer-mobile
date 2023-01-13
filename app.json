@@ -1,15 +1,17 @@
 {
   "expo": {
+    "entryPoint": "./index.js",
     "name": "Cyclocomputer-mobile",
     "slug": "Cyclocomputer-mobile",
+    "owner": "aktyn",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#455a64"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -21,10 +23,15 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.aktyn.cyclocomputer",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
+        "backgroundColor": "#455a64"
+      },
+      "permissions": [
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

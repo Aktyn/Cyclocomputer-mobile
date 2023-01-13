@@ -20,10 +20,10 @@ import {
   Provider as PaperProvider,
 } from 'react-native-paper'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { SnackbarProvider } from './src/snackbar/Snackbar'
-import { darkTheme } from './src/themes/darkTheme'
-import { RouteView } from './src/views/RouteView'
-import './src/modules/location/locationBackgroundTask'
+import { SnackbarProvider } from './snackbar/Snackbar'
+import { darkTheme } from './themes/darkTheme'
+import { RouteView } from './views/RouteView'
+import './modules/location/locationBackgroundTask'
 
 LogBox.ignoreAllLogs()
 

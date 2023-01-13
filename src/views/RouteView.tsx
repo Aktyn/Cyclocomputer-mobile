@@ -10,7 +10,7 @@ import { ErrorAlert } from '../components/ErrorAlert'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useModuleEvent } from '../hooks/useModuleEvent'
 import { locationModule } from '../modules/location'
-import { errorMessage } from '../utils'
+import { metersPerSecondToKilometersPerHour } from '../utils'
 
 const defaultZoom = 16
 
@@ -22,14 +22,14 @@ export const RouteView = () => {
     lng: 19.427908,
   })
   const [zoom, setZoom] = useState(defaultZoom)
-  const [error, setError] = useState<string | null>(null)
+  const [error, _setError] = useState<string | null>(null)
 
   useEffect(() => {
-    cancellable(locationModule.startMonitoring()).then((errorCode) => {
-      if (errorCode) {
-        setError(errorMessage.get(errorCode))
-      }
-    })
+    // cancellable(locationModule.startMonitoring()).then((errorCode) => {
+    //   if (errorCode) {
+    //     setError(errorMessage.get(errorCode))
+    //   }
+    // })
   }, [cancellable])
 
   useModuleEvent(locationModule, 'locationUpdate', (location) => {
@@ -38,7 +38,7 @@ export const RouteView = () => {
       'locationUpdate:',
       location.coords.latitude,
       location.coords.longitude,
-      location.coords.speed * 3.6,
+      metersPerSecondToKilometersPerHour(location.coords.speed),
     )
     setCoords({
       lat: location.coords.latitude,
