@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import * as Device from 'expo-device'
+import { MapView } from './MapView'
+import { TourSelectionView } from './TourSelectionView'
 import { useAppState } from '../hooks/useAppState'
-import { RouteView } from './RouteView'
 
 enum VIEW {
-  ROUTE,
+  MAP,
+  TOUR_SELECTION,
 }
 
 export const Root = () => {
-  const [view, _setView] = useState(VIEW.ROUTE)
+  const [view, setView] = useState(VIEW.TOUR_SELECTION)
   const { backgroundState } = useAppState()
 
   useEffect(() => {
@@ -23,8 +25,9 @@ export const Root = () => {
   }
 
   switch (view) {
-    case VIEW.ROUTE:
-      return <RouteView />
+    case VIEW.TOUR_SELECTION:
+      return <TourSelectionView onFinish={() => setView(VIEW.MAP)} />
+    case VIEW.MAP:
+      return <MapView />
   }
-  return null
 }

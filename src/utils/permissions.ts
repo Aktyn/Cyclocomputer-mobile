@@ -7,8 +7,8 @@ import {
   type Permission,
   type Rationale,
 } from 'react-native'
-import type { SafePromise } from '../../utils'
-import { ErrorCode } from '../../utils'
+import type { SafePromise } from '.'
+import { ErrorCode } from '.'
 
 async function requestPermission(
   permission: Permission,

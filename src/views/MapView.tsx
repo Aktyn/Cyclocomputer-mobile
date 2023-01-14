@@ -13,12 +13,14 @@ import {
 } from 'expo-leaflet'
 import type { Dimensions, MapShape } from 'expo-leaflet/web/src/model'
 import type { LocationObjectCoords } from 'expo-location'
+import { cyan } from 'material-ui-colors'
 import { StyleSheet, View } from 'react-native'
 import { Text } from 'react-native-paper'
 import { ErrorAlert } from '../components/ErrorAlert'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useModuleEvent } from '../hooks/useModuleEvent'
 import { locationModule } from '../modules/location'
+import { tourModule } from '../modules/tour'
 import { errorMessage, metersPerSecondToKilometersPerHour } from '../utils'
 
 const defaultZoom = 16
@@ -27,13 +29,14 @@ const defaultCoords = {
   lng: 19.427908,
 }
 
-export const RouteView = () => {
+export const MapView = () => {
   const cancellable = useCancellablePromise()
 
   const [currentLocation, setCurrentLocation] =
     useState<LocationObjectCoords | null>(locationModule.coords)
   const [zoom, setZoom] = useState(defaultZoom)
   const [error, setError] = useState<string | null>(null)
+  const [tour, setTour] = useState(tourModule.selectedTour)
 
   const coords = useMemo(
     () =>
@@ -54,9 +57,54 @@ export const RouteView = () => {
     })
   }, [cancellable])
 
-  useModuleEvent(locationModule, 'locationUpdate', (location) => {
-    setCurrentLocation(location.coords)
-  })
+  useModuleEvent(locationModule, 'locationUpdate', (location) =>
+    setCurrentLocation(location.coords),
+  )
+  useModuleEvent(tourModule, 'tourSelected', setTour)
+
+  const routeShape = useMemo<MapShape>(() => {
+    if (!tour) {
+      return null
+    }
+    return {
+      id: `route-${tour.id}`,
+      color: cyan[400],
+      smoothFactor: 0,
+      opacity: 0.5,
+      weight: 6,
+      positions: tour.raw.map((point) => {
+        return {
+          index: point.index,
+          lat: point.latitude,
+          lng: point.longitude,
+        }
+      }),
+      shapeType: 'polyline',
+      lineCap: 'round',
+      lineJoin: 'round',
+    }
+  }, [tour])
+
+  const accuracyRadiusShape = useMemo<MapShape>(
+    () => ({
+      id: 'location-accuracy-radius',
+      shapeType: 'circle',
+      center: coords,
+      radius: currentLocation?.accuracy ?? 0,
+      color: cyan[400],
+      stroke: true,
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.5,
+      fill: true,
+    }),
+    [coords, currentLocation?.accuracy],
+  )
+
+  const mapShapes = useMemo<MapShape[]>(
+    () => [accuracyRadiusShape, routeShape].filter(Boolean),
+    [accuracyRadiusShape, routeShape],
+  )
 
   const markers = useMemo(
     () => [
@@ -70,24 +118,6 @@ export const RouteView = () => {
     ],
     [coords],
   )
-
-  const mapShapes = useMemo(() => {
-    const shapes: MapShape[] = [
-      {
-        id: 'location-accuracy-radius',
-        shapeType: 'circle',
-        center: coords,
-        radius: currentLocation?.accuracy ?? 0,
-        color: '#29B6F6',
-        stroke: true,
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.4,
-        fill: true,
-      },
-    ]
-    return shapes
-  }, [coords, currentLocation?.accuracy])
 
   const handleLeafletViewUpdate = useCallback((event: LeafletWebViewEvent) => {
     // console.log(event.tag, event)
@@ -182,7 +212,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    padding: 16,
+    padding: 8,
     zIndex: 1,
     backgroundColor: '#000a',
     display: 'flex',

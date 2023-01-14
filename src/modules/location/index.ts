@@ -9,8 +9,8 @@ import * as TaskManager from 'expo-task-manager'
 import { Config } from '../../config'
 import type { SafePromise } from '../../utils'
 import { ErrorCode } from '../../utils'
+import { requestLocationPermissions } from '../../utils/permissions'
 import { Module } from '../Module'
-import { requestLocationPermissions } from './permissions'
 
 class LocationModule extends Module<
   [(name: 'locationUpdate', location: LocationObject) => void]
@@ -24,7 +24,11 @@ class LocationModule extends Module<
   public static async defineTask(restart = false) {
     if (TaskManager.isTaskDefined(Config.locationTaskName)) {
       if (restart) {
-        await TaskManager.unregisterTaskAsync(Config.locationTaskName)
+        try {
+          await TaskManager.unregisterTaskAsync(Config.locationTaskName)
+        } catch (error) {
+          console.error(error)
+        }
       } else {
         return
       }

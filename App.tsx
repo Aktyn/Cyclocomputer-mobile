@@ -18,7 +18,6 @@ import {
 } from '@expo-google-fonts/inter'
 import * as Font from 'expo-font'
 import { StatusBar } from 'expo-status-bar'
-import { unregisterAllTasksAsync } from 'expo-task-manager'
 import {
   LogBox,
   Platform,
@@ -65,7 +64,6 @@ const App = () => {
           Inter400: Inter_400Regular,
           Inter500: Inter_500Medium,
         })
-        await unregisterAllTasksAsync()
       } catch (error) {
         console.error(error)
       } finally {
