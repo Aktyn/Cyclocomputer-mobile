@@ -4,6 +4,8 @@ import { type Tour, tourFromGpxContent } from './helpers'
 import { logError } from '../../utils'
 import { gpsFileContentMock } from '../../utils/mockData'
 import { Module } from '../Module'
+import type { SettingsSchema } from '../settings'
+import { settingsModule } from '../settings'
 
 class TourModule extends Module<
   [
@@ -13,6 +15,9 @@ class TourModule extends Module<
 > {
   private _tours: Tour[] = []
   private _selectedTour: Tour | null = null
+  private readonly onSettingsChange = (settings: SettingsSchema) => {
+    this._tours = settings.tours
+  }
 
   get tours() {
     return this._tours
@@ -21,9 +26,18 @@ class TourModule extends Module<
     return this._selectedTour
   }
 
+  constructor() {
+    super()
+    settingsModule.emitter.on('settingsChange', this.onSettingsChange)
+  }
+
+  destroy() {
+    settingsModule.emitter.off('settingsChange', this.onSettingsChange)
+  }
+
   private onToursListChanged() {
     this.emitter.emit('toursListChanged', this._tours)
-    //TODO: store loaded tours in storage
+    settingsModule.setSetting('tours', this._tours)
   }
 
   private addTour(tour: Tour) {

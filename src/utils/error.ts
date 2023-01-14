@@ -28,3 +28,13 @@ export const errorMessage = new Map<ErrorCode, string>([
 ])
 
 export type SafePromise = Promise<ErrorCode>
+
+export function logError(error: unknown, messagePrefix?: string) {
+  if (error) {
+    console.error(
+      `${messagePrefix}${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+  }
+}
