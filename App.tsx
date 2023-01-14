@@ -1,3 +1,14 @@
+/* eslint-disable no-console */
+if (!__DEV__) {
+  console.log =
+    console.warn =
+    console.info =
+    console.error =
+    console.count =
+    console.assert =
+      () => null
+}
+
 import { useEffect, useMemo, useState } from 'react'
 import {
   Inter_100Thin,
@@ -7,6 +18,7 @@ import {
 } from '@expo-google-fonts/inter'
 import * as Font from 'expo-font'
 import { StatusBar } from 'expo-status-bar'
+import { unregisterAllTasksAsync } from 'expo-task-manager'
 import {
   LogBox,
   Platform,
@@ -20,9 +32,9 @@ import {
   Provider as PaperProvider,
 } from 'react-native-paper'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { SnackbarProvider } from './snackbar/Snackbar'
-import { darkTheme } from './themes/darkTheme'
-import { Root } from './views/Root'
+import { SnackbarProvider } from './src/snackbar/Snackbar'
+import { darkTheme } from './src/themes/darkTheme'
+import { Root } from './src/views/Root'
 
 LogBox.ignoreAllLogs()
 
@@ -53,6 +65,7 @@ const App = () => {
           Inter400: Inter_400Regular,
           Inter500: Inter_500Medium,
         })
+        await unregisterAllTasksAsync()
       } catch (error) {
         console.error(error)
       } finally {

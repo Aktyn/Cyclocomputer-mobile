@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     padding: 16,
+    zIndex: 99,
   },
   alert: {
     padding: 8,

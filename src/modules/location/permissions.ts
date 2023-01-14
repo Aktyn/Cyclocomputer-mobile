@@ -15,6 +15,9 @@ async function requestPermission(
   rationale: Partial<Rationale>,
 ): SafePromise {
   try {
+    if (await PermissionsAndroid.check(permission)) {
+      return ErrorCode.NoError
+    }
     const granted = await PermissionsAndroid.request(permission, {
       title: 'Permission',
       message: 'Permission is required',
