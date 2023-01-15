@@ -13,8 +13,9 @@ class TourModule extends Module<
     (name: 'tourSelected', tour: Tour | null) => void,
   ]
 > {
-  private _tours: Tour[] = []
+  private _tours = settingsModule.settings.tours
   private _selectedTour: Tour | null = null
+
   private readonly onSettingsChange = (settings: SettingsSchema) => {
     this._tours = settings.tours
   }

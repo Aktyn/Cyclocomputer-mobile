@@ -68,6 +68,7 @@ class LocationModule extends Module<
     }
     // eslint-disable-next-line no-console
     console.log('Location permissions granted')
+
     try {
       if (await hasStartedLocationUpdatesAsync(Config.locationTaskName)) {
         // eslint-disable-next-line no-console
@@ -77,6 +78,7 @@ class LocationModule extends Module<
     } catch (error) {
       console.error(error)
     }
+
     try {
       // eslint-disable-next-line no-console
       console.log('Starting location updates')

@@ -1,4 +1,6 @@
 import {
+  getBackgroundPermissionsAsync,
+  getForegroundPermissionsAsync,
   requestBackgroundPermissionsAsync,
   requestForegroundPermissionsAsync,
 } from 'expo-location'
@@ -38,15 +40,20 @@ async function requestPermission(
 
 export async function requestLocationPermissions(): SafePromise {
   try {
-    const { status: foregroundStatus } =
-      await requestForegroundPermissionsAsync()
-    if (foregroundStatus !== 'granted') {
-      return ErrorCode.ForegroundLocationPermissionDenied
+    if (!(await getForegroundPermissionsAsync()).granted) {
+      const { granted: foregroundPermissionsGranted } =
+        await requestForegroundPermissionsAsync()
+      if (!foregroundPermissionsGranted) {
+        return ErrorCode.ForegroundLocationPermissionDenied
+      }
     }
-    const { status: backgroundStatus } =
-      await requestBackgroundPermissionsAsync()
-    if (backgroundStatus !== 'granted') {
-      return ErrorCode.BackgroundLocationPermissionDenied
+
+    if (!(await getBackgroundPermissionsAsync()).granted) {
+      const { granted: backgroundPermissionsGranted } =
+        await requestBackgroundPermissionsAsync()
+      if (!backgroundPermissionsGranted) {
+        return ErrorCode.BackgroundLocationPermissionDenied
+      }
     }
 
     const error = await requestPermission(

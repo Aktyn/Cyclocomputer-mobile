@@ -20,8 +20,13 @@ import { ErrorAlert } from '../components/ErrorAlert'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useModuleEvent } from '../hooks/useModuleEvent'
 import { locationModule } from '../modules/location'
+import { progressModule } from '../modules/progress'
 import { tourModule } from '../modules/tour'
-import { errorMessage, metersPerSecondToKilometersPerHour } from '../utils'
+import {
+  errorMessage,
+  metersPerSecondToKilometersPerHour,
+  parseTime,
+} from '../utils'
 
 const defaultZoom = 16
 const defaultCoords = {
@@ -37,6 +42,7 @@ export const MapView = () => {
   const [zoom, setZoom] = useState(defaultZoom)
   const [error, setError] = useState<string | null>(null)
   const [tour, setTour] = useState(tourModule.selectedTour)
+  const [progress, setProgress] = useState(progressModule.progress)
 
   const coords = useMemo(
     () =>
@@ -52,17 +58,21 @@ export const MapView = () => {
   useEffect(() => {
     cancellable(locationModule.startMonitoring()).then((errorCode) => {
       if (errorCode) {
-        setError(errorMessage.get(errorCode))
+        setError(errorMessage.get(errorCode) ?? null)
       }
     })
-  }, [cancellable])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useModuleEvent(locationModule, 'locationUpdate', (location) =>
     setCurrentLocation(location.coords),
   )
   useModuleEvent(tourModule, 'tourSelected', setTour)
+  useModuleEvent(progressModule, 'progressUpdate', (newProgress) =>
+    setProgress({ ...newProgress }),
+  )
 
-  const routeShape = useMemo<MapShape>(() => {
+  const routeShape = useMemo<MapShape | null>(() => {
     if (!tour) {
       return null
     }
@@ -102,7 +112,7 @@ export const MapView = () => {
   )
 
   const mapShapes = useMemo<MapShape[]>(
-    () => [accuracyRadiusShape, routeShape].filter(Boolean),
+    () => [accuracyRadiusShape, routeShape].filter(Boolean) as MapShape[],
     [accuracyRadiusShape, routeShape],
   )
 
@@ -120,7 +130,6 @@ export const MapView = () => {
   )
 
   const handleLeafletViewUpdate = useCallback((event: LeafletWebViewEvent) => {
-    // console.log(event.tag, event)
     switch (event.tag) {
       case 'onMoveEnd':
         setZoom(event.zoom)
@@ -158,8 +167,16 @@ export const MapView = () => {
           </StatsValue>
           <StatsLabel>Coords accuracy:</StatsLabel>
           <StatsValue>+-{currentLocation.accuracy?.toFixed(2)}m</StatsValue>
+          <StatsLabel>Distance traveled:</StatsLabel>
+          <StatsValue>{progress.traveledDistanceKm.toFixed(2)}km</StatsValue>
           <StatsLabel>Heading:</StatsLabel>
           <StatsValue>{currentLocation.heading?.toFixed(2)}deg</StatsValue>
+          <StatsLabel>Ride duration:</StatsLabel>
+          <StatsValue>{parseTime(progress.rideDuration)}</StatsValue>
+          <StatsLabel>Current slope:</StatsLabel>
+          <StatsValue>{progress.currentSlope.toFixed(2)}deg</StatsValue>
+          <StatsLabel>Time in motion:</StatsLabel>
+          <StatsValue>{parseTime(progress.timeInMotion)}</StatsValue>
         </View>
       )}
       {error && <ErrorAlert message={error} />}

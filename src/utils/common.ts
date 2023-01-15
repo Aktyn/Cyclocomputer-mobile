@@ -1,3 +1,6 @@
+import { AppState } from 'react-native'
+import BackgroundTimer from 'react-native-background-timer'
+
 export function metersPerSecondToKilometersPerHour(mps: number) {
   return mps * 3.6
 }
@@ -25,5 +28,59 @@ export function tryParseJSON<FallbackType = undefined>(
     return JSON.parse(jsonString)
   } catch (e) {
     return fallbackValue ?? null
+  }
+}
+
+function setBulletproofTimeout(callback: () => void, delay: number) {
+  const isBackgroundState = !!AppState.currentState.match(/inactive|background/)
+  if (isBackgroundState) {
+    BackgroundTimer.setTimeout(callback, delay)
+  } else {
+    setTimeout(callback, delay)
+  }
+}
+
+type ArgumentTypes<F extends (...args: never[]) => void> = F extends (
+  ...args: infer A
+) => void
+  ? A
+  : never
+
+export function debounce<FunctionType extends (...args: never[]) => void>(
+  func: FunctionType,
+  delay?: number,
+  options: Partial<{ forceAfterNumberOfAttempts: number }> = {},
+) {
+  let timeout: NodeJS.Timeout | null = null
+  let attempts = 0
+
+  const cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = null
+    }
+  }
+
+  return {
+    run: (...args: ArgumentTypes<typeof func>) => {
+      if (
+        options?.forceAfterNumberOfAttempts !== undefined &&
+        options?.forceAfterNumberOfAttempts >= attempts
+      ) {
+        func(...args)
+        cancel()
+        attempts = 0
+        return
+      }
+
+      cancel()
+      attempts++
+      timeout = setBulletproofTimeout(() => {
+        timeout = null
+        attempts = 0
+        func(...args)
+      }, delay ?? 16) as never
+    },
+    cancel,
   }
 }
