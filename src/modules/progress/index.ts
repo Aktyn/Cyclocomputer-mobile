@@ -63,6 +63,9 @@ class ProgressModule extends Module<
   }
 
   public resetProgress() {
+    // eslint-disable-next-line no-console
+    console.log('Resetting current ride progress')
+
     const tourId = tourModule.selectedTour?.id ?? null
 
     this._progress = { ...getEmptyProgressData(), tourId }

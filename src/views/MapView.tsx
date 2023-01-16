@@ -287,8 +287,8 @@ const styles = StyleSheet.create({
   },
 })
 
-// const JAWG_API_KEY =
-// 'p6tUpXcWOZmJBNkMCl8YuHojFVVOKjqJasjD03TNeaLdFs0dvFdiITa2v5RabrJ2'
+const JAWG_API_KEY =
+  'p6tUpXcWOZmJBNkMCl8YuHojFVVOKjqJasjD03TNeaLdFs0dvFdiITa2v5RabrJ2'
 
 const mapLayers = [
   {
@@ -299,21 +299,20 @@ const mapLayers = [
     layerType: 'TileLayer' as MapLayerType,
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   },
-  //TODO: test other layers on production
-  // {
-  //   baseLayerIsChecked: true,
-  //   baseLayer: true,
-  //   baseLayerName: 'MapBox',
-  //   layerType: 'TileLayer' as MapLayerType,
-  //   url: `https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoid2hlcmVzbXl3YXZlcyIsImEiOiJjanJ6cGZtd24xYmU0M3lxcmVhMDR2dWlqIn0.QQSWbd-riqn1U5ppmyQjRw`,
-  // },
-  // {
-  //   baseLayerName: 'Dark',
-  //   baseLayerIsChecked: true,
-  //   layerType: 'TileLayer' as MapLayerType,
-  //   baseLayer: true,
-  //   url: `https://{s}.tile.jawg.io/jawg-matrix/{z}/{x}/{y}{r}.png?access-token=${JAWG_API_KEY}`,
-  //   attribution:
-  //     '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  // },
+  {
+    baseLayerIsChecked: false,
+    baseLayer: true,
+    baseLayerName: 'MapBox',
+    layerType: 'TileLayer' as MapLayerType,
+    url: `https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoid2hlcmVzbXl3YXZlcyIsImEiOiJjanJ6cGZtd24xYmU0M3lxcmVhMDR2dWlqIn0.QQSWbd-riqn1U5ppmyQjRw`,
+  },
+  {
+    baseLayerName: 'Dark',
+    baseLayerIsChecked: false,
+    layerType: 'TileLayer' as MapLayerType,
+    baseLayer: true,
+    url: `https://{s}.tile.jawg.io/jawg-matrix/{z}/{x}/{y}{r}.png?access-token=${JAWG_API_KEY}`,
+    attribution:
+      '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  },
 ]

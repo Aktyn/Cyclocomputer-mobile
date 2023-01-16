@@ -26,6 +26,7 @@ export interface Tour {
   id: string
   name: string
   raw: GeoPoint[]
+  /** Derived from mapZoom from settings */
   clusterSize: number
   clustered: ClusteredTour
 }
@@ -38,7 +39,7 @@ export function tourFromGpxContent(gpxContent: string, mapZoom: number): Tour {
       .match(/<trk>(.*)<\/trk>/gi)?.[0] ?? '',
   )
   const trkptArray = gpxDOM.getElementsByTagName('trkpt')
-  const clusteredPoints: ClusteredTour = new Map()
+
   const rawTour: GeoPoint[] = []
   let index = 0
   for (const trkpt of trkptArray) {
@@ -61,38 +62,50 @@ export function tourFromGpxContent(gpxContent: string, mapZoom: number): Tour {
       ).getTime()
     } catch (e) {}
 
-    const point = {
+    rawTour.push({
       index,
       latitude,
       longitude,
       tilePos,
       timestamp,
-    }
-    index++
-    const maxI = 2 ** mapZoom
-    const tileKey = `${Math.floor(tilePos.x) % maxI}-${
-      Math.floor(tilePos.y) % maxI
-    }` as const
-    const cluster = clusteredPoints.get(tileKey) ?? []
-    cluster.push(point)
-    rawTour.push(point)
+    })
 
-    clusteredPoints.set(tileKey, cluster)
+    index++
   }
   rawTour.sort((a, b) => a.timestamp - b.timestamp) //ASC
 
   const nameTag = gpxDOM.getElementsByTagName('name')
 
-  return {
+  const tour = {
     id: uuid.v4() as string,
     name:
       nameTag.length > 0
         ? decodeHtmlEntities(nameTag[0].children[0].text ?? 'Error')
         : `Tour ${uuid.v4()}`,
-    raw: rawTour, //reduceRawTour(rawTour),
+    raw: rawTour,
     clusterSize: mapZoom,
-    clustered: clusteredPoints,
+    clustered: new Map(),
   }
+  return clusterTour(tour, mapZoom)
+}
+
+export function clusterTour(tour: Tour, mapZoom: number) {
+  const clusteredPoints: ClusteredTour = new Map()
+
+  for (const point of tour.raw) {
+    const maxI = 2 ** mapZoom
+    const tileKey = `${Math.floor(point.tilePos.x) % maxI}-${
+      Math.floor(point.tilePos.y) % maxI
+    }` as const
+
+    const cluster = clusteredPoints.get(tileKey) ?? []
+    cluster.push(point)
+
+    clusteredPoints.set(tileKey, cluster)
+  }
+
+  tour.clustered = clusteredPoints
+  return tour
 }
 
 function decodeHtmlEntities(str: string) {

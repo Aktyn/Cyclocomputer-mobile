@@ -1,6 +1,6 @@
 import * as Device from 'expo-device'
 import { getDocumentAsync } from 'expo-document-picker'
-import { type Tour, tourFromGpxContent } from './helpers'
+import { type Tour, tourFromGpxContent, clusterTour } from './helpers'
 import { logError } from '../../utils'
 import { gpsFileContentMock } from '../../utils/mockData'
 import { Module } from '../Module'
@@ -18,6 +18,7 @@ class TourModule extends Module<
 
   private readonly onSettingsChange = (settings: SettingsSchema) => {
     this._tours = settings.tours
+    this.makeSureSelectedTourIsProperlyClustered(settings.mapZoom)
   }
 
   get tours() {
@@ -34,6 +35,12 @@ class TourModule extends Module<
 
   destroy() {
     settingsModule.emitter.off('settingsChange', this.onSettingsChange)
+  }
+
+  private makeSureSelectedTourIsProperlyClustered(mapZoom: number) {
+    if (this._selectedTour && this._selectedTour.clusterSize !== mapZoom) {
+      clusterTour(this._selectedTour, mapZoom)
+    }
   }
 
   private onToursListChanged() {
@@ -60,14 +67,23 @@ class TourModule extends Module<
 
   public selectTour(tour: Tour) {
     this._selectedTour = tour
+    this.makeSureSelectedTourIsProperlyClustered(
+      settingsModule.settings.mapZoom,
+    )
     this.emitter.emit('tourSelected', tour)
   }
 
   public loadFromFile() {
     if (!Device.isDevice) {
-      //TODO: use mapZoom from settings and regenerate clustered tour when mapZoom changes
       return Promise.resolve()
-        .then(() => this.addTour(tourFromGpxContent(gpsFileContentMock, 15)))
+        .then(() =>
+          this.addTour(
+            tourFromGpxContent(
+              gpsFileContentMock,
+              settingsModule.settings.mapZoom,
+            ),
+          ),
+        )
         .catch(logError)
     }
     return getDocumentAsync({
@@ -83,7 +99,9 @@ class TourModule extends Module<
         return fetch(data.uri)
           .then((res) => res.text())
           .then((content) => {
-            this.addTour(tourFromGpxContent(content, 15))
+            this.addTour(
+              tourFromGpxContent(content, settingsModule.settings.mapZoom),
+            )
           })
           .catch(logError)
       })

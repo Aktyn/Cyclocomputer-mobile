@@ -6,6 +6,7 @@ export enum ErrorCode {
   BackgroundLocationPermissionDenied,
   CannotStartBackgroundLocationUpdates,
   BackgroundTaskNotDefined,
+  CannotStopBackgroundLocationUpdates,
 }
 
 export const errorMessage = new Map<ErrorCode, string>([
@@ -25,6 +26,10 @@ export const errorMessage = new Map<ErrorCode, string>([
     'cannot start background location updates',
   ],
   [ErrorCode.BackgroundTaskNotDefined, 'background task has not been defined'],
+  [
+    ErrorCode.CannotStopBackgroundLocationUpdates,
+    'cannot stop background location updates',
+  ],
 ])
 
 export type SafePromise = Promise<ErrorCode>
