@@ -16,6 +16,7 @@ interface ProgressSchema {
   tourId: string | null
   location: LocationObject | null
   traveledDistanceKm: number
+  tourStartTimestamp: number
   rideDuration: number
   timeInMotion: number
   currentAltitudeMeters: number
@@ -29,6 +30,7 @@ function getEmptyProgressData(): ProgressSchema {
     tourId: null,
     location: null,
     traveledDistanceKm: 0,
+    tourStartTimestamp: 0,
     rideDuration: 0,
     timeInMotion: 0,
     currentAltitudeMeters: 0,
@@ -58,6 +60,14 @@ class ProgressModule extends Module<
   destroy() {
     locationModule.emitter.off('locationUpdate', this.onLocationUpdate)
     tourModule.emitter.off('tourSelected', this.onTourChange)
+  }
+
+  public resetProgress() {
+    const tourId = tourModule.selectedTour?.id ?? null
+
+    this._progress = { ...getEmptyProgressData(), tourId }
+    this.synchronizeData.run(this._progress, tourId)
+    this.emitter.emit('progressUpdate', this._progress)
   }
 
   private load(tourId: string | null) {
@@ -137,7 +147,11 @@ class ProgressModule extends Module<
       if (metersPerSecondToKilometersPerHour(coords.speed ?? 0) > 5) {
         this._progress.timeInMotion += timeBetweenUpdates
       }
-      this._progress.rideDuration += timeBetweenUpdates //TODO: fix this because there is a time gap when the app doesn't work for some period of time
+      if (!this._progress.tourStartTimestamp) {
+        this._progress.tourStartTimestamp = location.timestamp
+      }
+      this._progress.rideDuration =
+        location.timestamp - this._progress.tourStartTimestamp
     }
     this._progress.location = location
     this._progress.currentAltitudeMeters = coords.altitude ?? 0

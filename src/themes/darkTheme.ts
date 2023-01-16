@@ -10,7 +10,7 @@ export const darkTheme: MD3Theme = {
   colors: {
     ...DefaultTheme.colors,
     primary: cyan[500],
-    primaryContainer: '#ff5',
+    primaryContainer: cyan[500],
     secondary: '#ff5',
     secondaryContainer: '#ff5',
     tertiary: '#ff5',
@@ -22,7 +22,7 @@ export const darkTheme: MD3Theme = {
     error: red[400],
     errorContainer: red[400],
     onPrimary: cyan[50],
-    onPrimaryContainer: '#5f5',
+    onPrimaryContainer: cyan[50],
     onSecondary: '#5f5',
     onSecondaryContainer: '#5f5',
     onTertiary: '#ff5',

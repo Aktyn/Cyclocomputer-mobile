@@ -15,7 +15,7 @@ import type { Dimensions, MapShape } from 'expo-leaflet/web/src/model'
 import type { LocationObjectCoords } from 'expo-location'
 import { cyan } from 'material-ui-colors'
 import { StyleSheet, View } from 'react-native'
-import { Text } from 'react-native-paper'
+import { FAB, Portal, Text } from 'react-native-paper'
 import { ErrorAlert } from '../components/ErrorAlert'
 import useCancellablePromise from '../hooks/useCancellablePromise'
 import { useModuleEvent } from '../hooks/useModuleEvent'
@@ -34,9 +34,14 @@ const defaultCoords = {
   lng: 19.427908,
 }
 
-export const MapView = () => {
+interface MapViewProps {
+  onOpenSettings: () => void
+}
+
+export const MapView = ({ onOpenSettings }: MapViewProps) => {
   const cancellable = useCancellablePromise()
 
+  const [openMenu, setOpenMenu] = useState(false)
   const [currentLocation, setCurrentLocation] =
     useState<LocationObjectCoords | null>(locationModule.coords)
   const [zoom, setZoom] = useState(defaultZoom)
@@ -153,44 +158,92 @@ export const MapView = () => {
       </View>
       {currentLocation && (
         <View style={styles.stats}>
-          <StatsLabel>Speed:</StatsLabel>
-          <StatsValue>
-            {metersPerSecondToKilometersPerHour(
-              currentLocation.speed ?? 0,
-            ).toFixed(2)}
-            &nbsp;km/h
-          </StatsValue>
-          <StatsLabel>Altitude:</StatsLabel>
-          <StatsValue>
-            {currentLocation.altitude?.toFixed(2)}&nbsp;+-
-            {currentLocation.altitudeAccuracy?.toFixed(2)}m
-          </StatsValue>
-          <StatsLabel>Coords accuracy:</StatsLabel>
-          <StatsValue>+-{currentLocation.accuracy?.toFixed(2)}m</StatsValue>
-          <StatsLabel>Distance traveled:</StatsLabel>
-          <StatsValue>{progress.traveledDistanceKm.toFixed(2)}km</StatsValue>
-          <StatsLabel>Heading:</StatsLabel>
-          <StatsValue>{currentLocation.heading?.toFixed(2)}deg</StatsValue>
-          <StatsLabel>Ride duration:</StatsLabel>
-          <StatsValue>{parseTime(progress.rideDuration)}</StatsValue>
-          <StatsLabel>Current slope:</StatsLabel>
-          <StatsValue>{progress.currentSlope.toFixed(2)}deg</StatsValue>
-          <StatsLabel>Time in motion:</StatsLabel>
-          <StatsValue>{parseTime(progress.timeInMotion)}</StatsValue>
+          <StatsRow>
+            <StatsLabel>Speed:</StatsLabel>
+            <StatsValue>
+              {metersPerSecondToKilometersPerHour(
+                currentLocation.speed ?? 0,
+              ).toFixed(2)}
+              &nbsp;km/h
+            </StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Altitude:</StatsLabel>
+            <StatsValue>
+              {currentLocation.altitude?.toFixed(2)}&nbsp;+-
+              {currentLocation.altitudeAccuracy?.toFixed(2)}m
+            </StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Coords accuracy:</StatsLabel>
+            <StatsValue>+-{currentLocation.accuracy?.toFixed(2)}m</StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Distance traveled:</StatsLabel>
+            <StatsValue>{progress.traveledDistanceKm.toFixed(2)}km</StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Heading:</StatsLabel>
+            <StatsValue>{currentLocation.heading?.toFixed(2)}deg</StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Slope:</StatsLabel>
+            <StatsValue>{progress.currentSlope.toFixed(2)}deg</StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Ride duration:</StatsLabel>
+            <StatsValue>{parseTime(progress.rideDuration)}</StatsValue>
+          </StatsRow>
+          <StatsRow>
+            <StatsLabel>Time in motion:</StatsLabel>
+            <StatsValue>{parseTime(progress.timeInMotion)}</StatsValue>
+          </StatsRow>
         </View>
       )}
+      <Portal>
+        <FAB.Group
+          open={openMenu}
+          visible
+          variant="primary"
+          icon={openMenu ? 'close' : 'menu'}
+          actions={[
+            {
+              icon: 'cog',
+              size: 'medium',
+              onPress: onOpenSettings,
+            },
+            {
+              icon: 'restart',
+              size: 'medium',
+              onPress: () => progressModule.resetProgress(),
+            },
+          ]}
+          onStateChange={({ open }) => setOpenMenu(open)}
+        />
+      </Portal>
       {error && <ErrorAlert message={error} />}
     </View>
   )
 }
 
+const StatsRow = memo(({ children }: PropsWithChildren<object>) => (
+  <View
+    style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'flex-end',
+    }}
+  >
+    {children}
+  </View>
+))
 const StatsLabel = memo(({ children }: PropsWithChildren<object>) => (
   <Text
     variant="bodyMedium"
     numberOfLines={1}
     style={{
-      flexGrow: 1,
-      flexShrink: 0,
+      width: '50%',
       textAlign: 'right',
     }}
   >
@@ -202,12 +255,10 @@ const StatsValue = memo(({ children }: PropsWithChildren<object>) => (
     variant="bodyMedium"
     numberOfLines={1}
     style={{
+      width: '50%',
       flexWrap: 'nowrap',
       fontWeight: 'bold',
       marginLeft: 4,
-      flexGrow: 1,
-      flexShrink: 0,
-      textAlign: 'left',
     }}
   >
     {children}
@@ -227,14 +278,12 @@ const styles = StyleSheet.create({
   stats: {
     position: 'absolute',
     left: 0,
-    right: 0,
     bottom: 0,
     padding: 8,
     zIndex: 1,
     backgroundColor: '#000a',
     display: 'flex',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
   },
 })
 
