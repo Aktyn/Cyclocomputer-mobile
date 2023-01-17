@@ -38,7 +38,7 @@ class TourModule extends Module<
   }
 
   private makeSureSelectedTourIsProperlyClustered(mapZoom: number) {
-    if (this._selectedTour && this._selectedTour.clusterSize !== mapZoom) {
+    if (this._selectedTour) {
       clusterTour(this._selectedTour, mapZoom)
     }
   }

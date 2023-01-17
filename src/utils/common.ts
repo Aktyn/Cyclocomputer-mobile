@@ -1,10 +1,6 @@
 import { AppState } from 'react-native'
 import BackgroundTimer from 'react-native-background-timer'
 
-export function metersPerSecondToKilometersPerHour(mps: number) {
-  return mps * 3.6
-}
-
 export const int = (value?: string) => parseInt(value ?? '', 10) || 0
 export const float = (value?: string) => parseFloat(value ?? '') || 0
 
@@ -31,7 +27,7 @@ export function tryParseJSON<FallbackType = undefined>(
   }
 }
 
-function setBulletproofTimeout(callback: () => void, delay: number) {
+export function setBulletproofTimeout(callback: () => void, delay: number) {
   const isBackgroundState = !!AppState.currentState.match(/inactive|background/)
   if (isBackgroundState) {
     BackgroundTimer.setTimeout(callback, delay)

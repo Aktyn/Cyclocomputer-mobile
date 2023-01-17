@@ -9,6 +9,7 @@ if (!__DEV__) {
       () => null
 }
 
+import './src/polyfill'
 import { useEffect, useMemo, useState } from 'react'
 import {
   Inter_100Thin,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as Device from 'expo-device'
+import { DebugView } from './DebugView'
 import { MapView } from './MapView'
 import { SettingsView } from './SettingsView'
 import { TourSelectionView } from './TourSelectionView'
@@ -9,6 +10,7 @@ enum VIEW {
   MAP,
   TOUR_SELECTION,
   SETTINGS,
+  DEBUG,
 }
 
 export const Root = () => {
@@ -30,8 +32,15 @@ export const Root = () => {
     case VIEW.TOUR_SELECTION:
       return <TourSelectionView onFinish={() => setView(VIEW.MAP)} />
     case VIEW.MAP:
-      return <MapView onOpenSettings={() => setView(VIEW.SETTINGS)} />
+      return (
+        <MapView
+          onOpenSettings={() => setView(VIEW.SETTINGS)}
+          onOpenDebugView={() => setView(VIEW.DEBUG)}
+        />
+      )
     case VIEW.SETTINGS:
       return <SettingsView onReturn={() => setView(VIEW.MAP)} />
+    case VIEW.DEBUG:
+      return <DebugView onReturn={() => setView(VIEW.MAP)} />
   }
 }

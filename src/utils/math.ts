@@ -1,5 +1,15 @@
-export const degreeToRadian = (degree: number) => {
+export function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+export const mix = (val1: number, val2: number, mixFactor: number) =>
+  (1 - mixFactor) * val1 + mixFactor * val2
+
+export function degreeToRadian(degree: number) {
   return (degree * Math.PI) / 180
+}
+
+export function metersPerSecondToKilometersPerHour(mps: number) {
+  return mps * 3.6
 }
 
 export const distanceBetweenEarthCoordinatesInKm = (

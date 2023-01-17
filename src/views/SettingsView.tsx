@@ -59,6 +59,8 @@ export function SettingsView({ onReturn }: SettingsViewProps) {
     [],
   )
 
+  //TODO: reset to defaults button
+
   return (
     <View style={styles.container}>
       <ScrollView>

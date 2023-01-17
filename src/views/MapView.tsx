@@ -6,6 +6,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
+import * as Device from 'expo-device'
 import {
   ExpoLeaflet,
   type LeafletWebViewEvent,
@@ -36,9 +37,10 @@ const defaultCoords = {
 
 interface MapViewProps {
   onOpenSettings: () => void
+  onOpenDebugView: () => void
 }
 
-export const MapView = ({ onOpenSettings }: MapViewProps) => {
+export const MapView = ({ onOpenSettings, onOpenDebugView }: MapViewProps) => {
   const cancellable = useCancellablePromise()
 
   const [openMenu, setOpenMenu] = useState(false)
@@ -206,18 +208,27 @@ export const MapView = ({ onOpenSettings }: MapViewProps) => {
           visible
           variant="primary"
           icon={openMenu ? 'close' : 'menu'}
-          actions={[
-            {
-              icon: 'cog',
-              size: 'medium',
-              onPress: onOpenSettings,
-            },
-            {
-              icon: 'restart',
-              size: 'medium',
-              onPress: () => progressModule.resetProgress(),
-            },
-          ]}
+          actions={(
+            [
+              {
+                icon: 'cog',
+                size: 'medium',
+                onPress: onOpenSettings,
+              },
+              {
+                icon: 'restart',
+                size: 'medium',
+                onPress: () => progressModule.resetProgress(),
+              },
+              (Device.isDevice
+                ? null
+                : {
+                    icon: 'tools',
+                    size: 'medium',
+                    onPress: onOpenDebugView,
+                  }) as never,
+            ] as const
+          ).filter(Boolean)}
           onStateChange={({ open }) => setOpenMenu(open)}
         />
       </Portal>
